@@ -1,12 +1,11 @@
 Thinking Vector Project
 
 #Logic Vector
-VectorName          description
--------------------------------------------------
-Because Vector      Direct causality
-LeadTo Vector       Indirect causality
-Not Vector          Negation(Logical Complement)
-If Vector           Multiple
+VectorName:
+1.Because Vector
+2.LeadTo Vector
+3.Not Vector
+4.If Vector
 
 #Demo
 2D(Two-dimensional space)
