@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link type="text/css" rel="stylesheet" href="demoStyle.css" type="text/css">
+<script type="text/javascript" src="paper-full.js"></script>
+<style type="text/css">
+	canvas{
+		width: 100%;
+		height: 100%;
+	}
+</style>
+
+
+<script type="text/paperscript" canvas="myCanvas">
+
+
+var point1 = new Point(600, 200),
+	point2 = new Point(500, 400);
+var myRadius = 25;
+var firstColor = 'blue';
+
+creatPairCircle(point1, point2, firstColor);
+
+function creatCircle(center, radius, color){
+	var myCircle = new Path.Circle(center, radius);
+	myCircle.fillColor = color;
+}
+function creatStroke(startPoint, endPoint, color){
+	var myLine = new Path.Line(startPoint, endPoint);
+	myLine.strokeColor = color;
+}
+function createArrow(startPoint, endPoint, color){
+	//magic number
+	var shortenParam = 0.1;
+	//create arrow line
+	var myRevVec = -(endPoint - startPoint);//reverse vector
+	var myRevShortVec = myRevVec * shortenParam;
+	//create right arrow line
+	var rightVec = myRevShortVec.clone();
+	var leftVec = myRevShortVec.clone();
+	//rotate the angle
+	rightVec.angle += 30;
+	leftVec.angle -= 30;
+	//draw right arrow line
+	var rightline = new Path.Line(endPoint, endPoint + rightVec);
+	rightline.strokeColor = color;
+	//draw left arrow line
+	var leftline = new Path.Line(endPoint, endPoint + leftVec);
+	leftline.strokeColor = color;
+}
+function setBecVector(center1, center2, color) {
+	// set a 'Because Vector'
+	//magic numbers
+	var whiteSpace = 1/6,
+		blackStroke = 4/6;
+	//vector
+	var vector1to2 = center2 - center1;
+	//create line
+	var lineStart = center1 + vector1to2 * whiteSpace,
+		lineEnd = center1 + vector1to2 * (whiteSpace + blackStroke);
+
+	creatStroke(lineStart, lineEnd, color);
+	createArrow(lineStart, lineEnd, color);
+}
+
+
+function creatPairCircle(point1, point2, color) {
+	creatCircle(point1, myRadius, color);
+	creatCircle(point2, myRadius, color);
+	setBecVector(point1, point2, color);
+}
+
+</script>
+</head>
+<body>
+<canvas id="myCanvas" resize="true"></canvas>
+</body>
+</html>
