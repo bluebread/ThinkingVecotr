@@ -14,24 +14,64 @@
 <script type="text/paperscript" canvas="myCanvas">
 
 
-var point1 = new Point(600, 200),
-	point2 = new Point(500, 400);
+var point1 = new Point(200, 300),
+	point2 = new Point(800, 100);
 var myRadius = 25;
 var firstColor = 'blue';
 
 creatPairCircle(point1, point2, firstColor);
+
+
+function creatSinGraph(startPoint, vector){
+	var sinPath = new Path();
+	//magic numbers
+	var height = 10,
+		wavelength = 18,
+		timeOfWave = vector.length/18,
+		radian_degree_rate = Math.PI / 360;
+
+	for (var sinX = 0; sinX < 360 * timeOfWave; sinX++) {
+		var radian = sinX * radian_degree_rate;//trun degree to radian
+		var sinY = Math.sin(radian) * height;
+		var sinPoint = new Point(sinX / 20, sinY);
+		sinPoint.angle += vector.angle;
+		sinPoint += startPoint;
+		sinPath.add(sinPoint);
+	}
+	sinPath.smooth();
+	// sinPath.fullySelected = true;
+	sinPath.strokeColor = 'blue';
+	sinPath.strokeWidth = 3;
+}
+function setLeadToVector(center1, center2) {
+	// set a 'LeadTo Vector'
+	//magic numbers
+	var whiteSpace = 1/6,
+		shortenRate = 4/6;
+	//vector
+	var vector1to2 = center2 - center1;
+	var shortenVec = vector1to2.clone();
+	shortenVec.length *= shortenRate;
+	console.log(shortenVec);
+	//startPoint
+	var lineStart = center1 + vector1to2 * whiteSpace;
+
+	creatSinGraph(lineStart, shortenVec);
+}
+
 
 function creatCircle(center, radius, color){
 	var myCircle = new Path.Circle(center, radius);
 	myCircle.fillColor = color;
 }
 function creatStroke(startPoint, endPoint, color){
-	var myLine = new Path.Line(startPoint, endPoint);
+	var myLine = new Path(startPoint, endPoint);
 	myLine.strokeColor = color;
+	myLine.strokeWidth = 4;
 }
 function createArrow(startPoint, endPoint, color){
 	//magic number
-	var shortenParam = 0.1;
+	var shortenParam = 0.15;
 	//create arrow line
 	var myRevVec = -(endPoint - startPoint);//reverse vector
 	var myRevShortVec = myRevVec * shortenParam;
@@ -41,12 +81,25 @@ function createArrow(startPoint, endPoint, color){
 	//rotate the angle
 	rightVec.angle += 30;
 	leftVec.angle -= 30;
-	//draw right arrow line
-	var rightline = new Path.Line(endPoint, endPoint + rightVec);
-	rightline.strokeColor = color;
-	//draw left arrow line
-	var leftline = new Path.Line(endPoint, endPoint + leftVec);
-	leftline.strokeColor = color;
+
+	var rightEnd = endPoint + rightVec,
+		leftEnd  = endPoint + leftVec;
+	var segments = [rightEnd, endPoint, leftEnd];
+	var arrowPath = new Path(segments);
+
+	arrowPath.strokeColor = 'blue';
+	arrowPath.strokeWidth = 4;
+
+
+
+	// //draw right arrow line
+	// var rightline = new Path.Line(endPoint, endPoint + rightVec);
+	// rightline.strokeColor = color;
+	// rightline.strokeWidth = 5;
+	// //draw left arrow line
+	// var leftline = new Path.Line(endPoint, endPoint + leftVec);
+	// leftline.strokeColor = color;
+	// leftline.strokeWidth = 5;
 }
 function setBecVector(center1, center2, color) {
 	// set a 'Because Vector'
@@ -67,7 +120,8 @@ function setBecVector(center1, center2, color) {
 function creatPairCircle(point1, point2, color) {
 	creatCircle(point1, myRadius, color);
 	creatCircle(point2, myRadius, color);
-	setBecVector(point1, point2, color);
+	// setBecVector(point1, point2, color);
+	setLeadToVector(point1, point2);
 }
 
 </script>
