@@ -10,16 +10,179 @@
 	}
 </style>
 
+</head>
+<body>
 
 <script type="text/paperscript" canvas="myCanvas">
 
+var clickStartPoint,
+	clickEndPoint,
+	myCircle,
+	myDashLine,
+	arrowStroke,
+	arrowPath,
+	horizonDashLine,
+	verticalDashLine;
 
-var point1 = new Point(200, 300),
-	point2 = new Point(800, 100);
 var myRadius = 25;
 var firstColor = 'blue';
+var circleBusy = false;
+var circleEnter = true;
+var arrayDash = [];
 
-creatPairCircle(point1, point2, firstColor);
+var circleGroup = new Group();
+var arrowStrokeGroup = new Group();
+var arrowPathGroup = new Group();
+var dashGroup = new Group;
+var sinPathGroup = new Group;
+
+var point1 = new Point(200, 200);
+var point2 = new Point(800, 200);
+
+// setLeadToVector(point1, point2);
+// createArrow(point1, point2, 'black');
+
+GroupsInsertBelow();
+
+function GroupsInsertBelow(){
+	arrowPathGroup.insertBelow(circleGroup);
+	arrowStrokeGroup.insertBelow(arrowPathGroup);
+	sinPathGroup.insertBelow(arrowPathGroup);
+	dashGroup.insertBelow(arrowStrokeGroup);
+	dashGroup.insertBelow(sinPathGroup);	
+}
+
+
+function onMouseDown(event) {
+	if (!circleBusy) {
+		clickStartPoint = event.point;
+		creatCircle(event.point, myRadius, 'blue');
+	}
+}
+
+
+//set circle to listen lots of events
+Path.prototype.circleListener = function(){
+	// When the mouse enters the item, set its fill color to red:
+	this.onMouseEnter = function(event) {
+		this.fillColor = 'red';
+		circleBusy = true;
+	}
+	// When the mouse leaves the item, set its fill color to black:
+	this.onMouseLeave = function(event) {
+	    this.fillColor = 'blue';
+	    circleBusy = false;
+	}
+
+	this.onMouseDrag = function(event){
+		if (!circleBusy) {
+			setBecVector(this.data.center, event.point, firstColor);
+			arrowStroke.removeOnDrag();
+			arrowPath.removeOnDrag();
+
+			creatDash(this.data.center, event.point);
+			horizonDashLine.removeOnDrag();
+			// verticalDashLine.removeOnDrag();			
+		}
+	}
+	this.onMouseUp = function(event){
+		if(horizonDashLine){
+			horizonDashLine.strokeColor = 'white';
+		}
+	}
+}
+Path.prototype.dashLineListener = function() {
+	// When the mouse enters the item, set its fill color to red:
+	this.onMouseEnter = function(event) {
+	    this.strokeColor = 'gray';
+	}
+	// When the mouse leaves the item, set its fill color to black:
+	this.onMouseLeave = function(event) {
+	    this.strokeColor = 'white';
+	}
+};
+
+
+//The part of dash line
+function creatDash(center, endPoint) {
+	var horizonVector = endPoint - center;
+	var verticalVector = new Point(-horizonVector.y, horizonVector.x);
+	// vertical line
+	// verticalDashLine = new Path();
+	// drawMathFuncByVector(horizonVector, endPoint, verticalDashLine);
+	// verticalDashLine.dashLineListener();
+	// verticalDashLine.strokeWidth = 3;
+	// verticalDashLine.strokeColor = 'blue';
+
+	//hrorizon line
+	horizonDashLine = new Path();
+	drawMathFuncByVector(verticalVector, endPoint, horizonDashLine);
+	horizonDashLine.strokeWidth = 4;
+	horizonDashLine.strokeColor = 'gray';
+	horizonDashLine.dashArray = [10, 12];
+
+	horizonDashLine.dashLineListener();
+	horizonDashLine.insertBelow(arrowStroke);
+
+	dashGroup.addChild(horizonDashLine);
+}
+
+
+function drawMathFuncByVector(vector, point, line) {
+	var A = vector.x,
+		B = vector.y;
+	for (var dashX = 0 ; dashX < 1300; dashX++) {
+		var dashY = ((-A) / B) * (dashX - point.x) + point.y;
+		var dashPoint = new Point(dashX, dashY);
+		line.add(dashPoint);
+	}
+}
+
+//The part of 'Because Vector'
+function creatCircle(center, radius, color){
+	myCircle = new Path.Circle(center, radius);
+	myCircle.fillColor = color;
+	myCircle.data.center = center;
+	myCircle.circleListener();
+
+	circleGroup.addChild(myCircle);
+}
+function creatStroke(startPoint, endPoint, color){
+	arrowStroke = new Path(startPoint, endPoint);
+	arrowStroke.strokeColor = color;
+	arrowStroke.strokeWidth = 4;
+	arrowStroke.insertBelow(myCircle);
+
+	arrowStrokeGroup.addChild(arrowStroke);
+}
+function createArrow(startPoint, endPoint, color){
+	//magic number
+	var shortenParam = 0.1;
+	//create arrow line
+	var myRevVec = -(endPoint - startPoint);//reverse vector
+	var myRevShortVec = myRevVec * shortenParam;
+	//create right arrow line
+	var rightVec = myRevShortVec.clone();
+	var leftVec = myRevShortVec.clone();
+	//rotate the angle
+	rightVec.angle += 30;
+	leftVec.angle -= 30;
+
+	var rightEnd = endPoint + rightVec,
+		leftEnd  = endPoint + leftVec;
+	var segments = [rightEnd, endPoint, leftEnd];
+	//create arrow
+	arrowPath = new Path(segments);
+
+	arrowPath.strokeColor = 'blue';
+	arrowPath.strokeWidth = 4;
+
+	arrowPathGroup.addChild(arrowPath);
+}
+function setBecVector(circleCenter, arrowEnd, color) {
+	creatStroke(circleCenter, arrowEnd, color);
+	createArrow(circleCenter, arrowEnd, color);
+}
 
 //The Part of 'LeadTo Vector'
 function creatSinGraph(startPoint, vector){
@@ -42,6 +205,8 @@ function creatSinGraph(startPoint, vector){
 	// sinPath.fullySelected = true;
 	sinPath.strokeColor = 'blue';
 	sinPath.strokeWidth = 3;
+
+	sinPathGroup.addChild(sinPath);
 }
 function setLeadToVector(center1, center2) {
 	// set a 'LeadTo Vector'
@@ -50,72 +215,17 @@ function setLeadToVector(center1, center2) {
 		shortenRate = 4/6;
 	//vector
 	var vector1to2 = center2 - center1;
-	var shortenVec = vector1to2.clone();
+	var shortenVec = vector1to2;
 	shortenVec.length *= shortenRate;
-	console.log(shortenVec);
 	//startPoint
 	var lineStart = center1 + vector1to2 * whiteSpace;
 
 	creatSinGraph(lineStart, shortenVec);
 }
 
-//The part of 'Because Vector'
-function creatCircle(center, radius, color){
-	var myCircle = new Path.Circle(center, radius);
-	myCircle.fillColor = color;
-}
-function creatStroke(startPoint, endPoint, color){
-	var myLine = new Path(startPoint, endPoint);
-	myLine.strokeColor = color;
-	myLine.strokeWidth = 4;
-}
-function createArrow(startPoint, endPoint, color){
-	//magic number
-	var shortenParam = 0.1;
-	//create arrow line
-	var myRevVec = -(endPoint - startPoint);//reverse vector
-	var myRevShortVec = myRevVec * shortenParam;
-	//create right arrow line
-	var rightVec = myRevShortVec.clone();
-	var leftVec = myRevShortVec.clone();
-	//rotate the angle
-	rightVec.angle += 30;
-	leftVec.angle -= 30;
-
-	var rightEnd = endPoint + rightVec,
-		leftEnd  = endPoint + leftVec;
-	var segments = [rightEnd, endPoint, leftEnd];
-	var arrowPath = new Path(segments);
-
-	arrowPath.strokeColor = 'blue';
-	arrowPath.strokeWidth = 4;
-}
-function setBecVector(center1, center2, color) {
-	// set a 'Because Vector'
-	//magic numbers
-	var whiteSpace = 1/6,
-		blackStroke = 4/6;
-	//vector
-	var vector1to2 = center2 - center1;
-	//create line
-	var lineStart = center1 + vector1to2 * whiteSpace,
-		lineEnd = center1 + vector1to2 * (whiteSpace + blackStroke);
-
-	creatStroke(lineStart, lineEnd, color);
-	createArrow(lineStart, lineEnd, color);
-}
-
-//The main part
-function creatPairCircle(point1, point2, color) {
-	creatCircle(point1, myRadius, color);
-	creatCircle(point2, myRadius, color);
-	setBecVector(point1, point2, color);
-	setLeadToVector(point1, point2);
-}
 
 </script>
-</head>
-<body>
+
 <canvas id="myCanvas" resize="true"></canvas>
 </body>
 </html>
