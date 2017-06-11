@@ -73,23 +73,25 @@ var clickStartPoint,
 	myDashLine,
 	arrowStroke,
 	arrowPath,
-	horizonDashLine,
+	auxDashLine,
 	verticalDashLine,
-	sinPath;
+	sinPath,
+	elsIfDashLine;
 var whichVector = "BecauseVector";
 
 var myRadius = 25;
 var circleColor = '#0000FF';
-var arrowColor = '#1E90FF';
+var vectorColor = '#1E90FF';
 var circleBusy = false;
 var circleEnter = true;
 var arrayDash = [];
 
 var circleGroup = new Group();
-var arrowStrokeGroup = new Group();
 var arrowPathGroup = new Group();
-var dashGroup = new Group;
+var arrowStrokeGroup = new Group();
 var sinPathGroup = new Group;
+var elsIfDashGroup = new Group();
+var auxDashGroup = new Group;
 
 var point1 = new Point(200, 200);
 var point2 = new Point(800, 400);
@@ -108,9 +110,10 @@ function onMouseDown(event) {
 }
 function GroupsInsertBelow(){
 	arrowPathGroup.insertBelow(circleGroup);
-	sinPathGroup.insertBelow(arrowPathGroup);
-	arrowStrokeGroup.insertBelow(sinPathGroup);
-	dashGroup.insertBelow(arrowStrokeGroup);	
+	arrowStrokeGroup.insertBelow(arrowPathGroup);
+	sinPathGroup.insertBelow(arrowStrokeGroup);
+	elsIfDashGroup.insertBelow(sinPathGroup);
+	auxDashGroup.insertBelow(elsIfDashGroup);	
 }
 function vecBottomListener(){
 	$("#BV").click(function(event) {
@@ -118,7 +121,7 @@ function vecBottomListener(){
 		whichVector = 'BecauseVector';
 	});
 	$("#LTV").click(function(event) {
-		console.log("LV CONNECTED!")
+		console.log("LTV CONNECTED!")
 		whichVector = 'LeadToVector';
 	});
 	$("#NV").click(function(event) {
@@ -132,23 +135,33 @@ function vecBottomListener(){
 }
 function chooseVector(circleCenter, mousePoint){
 	if (whichVector === 'BecauseVector') {
-		console.log(circleCenter);
-		setBecVector(circleCenter, mousePoint, arrowColor);
+		setBecVector(circleCenter, mousePoint, vectorColor);
 		arrowStroke.removeOnDrag();
 		arrowPath.removeOnDrag();
+		//set auxiliary line
+		creatAuxDash(circleCenter, mousePoint, 'gray');
+		auxDashLine.removeOnDrag();	
+		console.log(auxDashLine);
 	}else if(whichVector === 'LeadToVector'){
-		creatSinGraph(circleCenter, mousePoint);
+		creatSinGraph(circleCenter, mousePoint, vectorColor);
 		sinPath.removeOnDrag();
+		//set auxiliary line
+		creatAuxDash(circleCenter, mousePoint, 'gray');
+		auxDashLine.removeOnDrag();	
 	}else if(whichVector === 'NotVector'){
 		return null;
-	}else if(whichVector === 'ElseIfVector'){
-		return null;
+	}else if(whichVector === 'ElseIfVector'){			
+		setElseIfVector(circleCenter, mousePoint, vectorColor);
+		elsIfDashLine.removeOnDrag();	
+		//set auxiliary line
+		creatAuxDash(circleCenter, mousePoint, 'gray');
+		auxDashLine.removeOnDrag();
 	}else{
 		return undefined;
 	}
 }
 
-//set circle to listen lots of events
+//set listeners
 Path.prototype.circleListener = function(){
 	// When the mouse enters the item, set its fill color to red:
 	this.onMouseEnter = function(event) {
@@ -163,63 +176,53 @@ Path.prototype.circleListener = function(){
 
 	this.onMouseDrag = function(event){
 		if (!circleBusy) {
-			chooseVector(this.data.center, event.point);
-			creatDash(this.data.center, event.point);
-			horizonDashLine.removeOnDrag();
-			// verticalDashLine.removeOnDrag();			
+			chooseVector(this.data.center, event.point);	
 		}
 	}
 	this.onMouseUp = function(event){
-		if(horizonDashLine){
-			horizonDashLine.opacity = 0;
+		if(auxDashLine){
+			auxDashLine.opacity = 0;
 		}
 	}
 }
-Path.prototype.dashLineListener = function() {
-	// When the mouse enters the item, set its fill color to red:
+Path.prototype.auxDashLineListener = function() {
 	this.onMouseEnter = function(event) {
 	    this.opacity = 0.7;
 	}
-	// When the mouse leaves the item, set its fill color to black:
 	this.onMouseLeave = function(event) {
 	    this.opacity = 0;
 	}
 };
 
 
-//The part of dash line
-function creatDash(center, endPoint) {
+//The part of ElseIf Vector
+function initDashLine(dashLine, color, group) {
+	dashLine.strokeWidth = 4;
+	dashLine.strokeColor = color;
+	dashLine.dashArray = [10, 12];
+	group.addChild(dashLine);
+}
+function creatAuxDash(center, endPoint, color) {
 	var horizonVector = endPoint - center;
 	var verticalVector = new Point(-horizonVector.y, horizonVector.x);
-	// vertical line
-	// verticalDashLine = new Path();
-	// drawMathFuncByVector(horizonVector, endPoint, verticalDashLine);
-	// verticalDashLine.dashLineListener();
-	// verticalDashLine.strokeWidth = 3;
-	// verticalDashLine.strokeColor = arrowColor;
-
-	//hrorizon line
-	horizonDashLine = new Path();
-	drawMathFuncByVector(verticalVector, endPoint, horizonDashLine);
-	horizonDashLine.strokeWidth = 4;
-	horizonDashLine.strokeColor = 'gray';
-	horizonDashLine.dashArray = [10, 12];
-
-	horizonDashLine.dashLineListener();
-	horizonDashLine.insertBelow(arrowStroke);
-
-	dashGroup.addChild(horizonDashLine);
+	auxDashLine = new Path();
+	initDashLine(auxDashLine, 'gray', auxDashGroup);
+	drawStraightLine(verticalVector, endPoint, auxDashLine);
+	auxDashLine.auxDashLineListener();
 }
-
-
-function drawMathFuncByVector(vector, point, line) {
+function drawStraightLine(vector, point, line) {
 	var A = vector.x,
 		B = vector.y;
-	for (var dashX = 0 ; dashX < 1300; dashX++) {
+	for (var dashX = 0 ; dashX < 1300; dashX += 40) {
 		var dashY = ((-A) / B) * (dashX - point.x) + point.y;
 		var dashPoint = new Point(dashX, dashY);
 		line.add(dashPoint);
 	}
+}
+function setElseIfVector(startPoint, endPoint, color) {
+	elsIfDashLine = new Path(startPoint, endPoint);
+	initDashLine(elsIfDashLine, '#00BFFF', elsIfDashGroup);
+	console.log(elsIfDashLine);
 }
 
 //The part of 'Because Vector'
@@ -245,9 +248,6 @@ function creatStroke(startPoint, endPoint, color){
 	}else if(arrowStrokeWidth < minArrowStrokeWidth){
 		arrowStroke.strokeWidth = minArrowStrokeWidth;
 	}
-
-	// arrowStroke.strokeWidth = 4;
-	arrowStroke.insertBelow(myCircle);
 
 	arrowStrokeGroup.addChild(arrowStroke);
 }
@@ -287,7 +287,7 @@ function createArrow(startPoint, endPoint, color){
 		arrowPath.strokeWidth = minArrowWidth;
 	}
 
-	arrowPath.strokeColor = arrowColor;
+	arrowPath.strokeColor = color;
 
 	arrowPathGroup.addChild(arrowPath);
 }
@@ -297,7 +297,7 @@ function setBecVector(circleCenter, arrowEnd, color) {
 }
 
 //The Part of 'LeadTo Vector'
-function creatSinGraph(startPoint, endPoint){
+function creatSinGraph(startPoint, endPoint, color){
 	var sinPathVector = endPoint - startPoint;
 	sinPath = new Path();
 	//magic numbers
@@ -317,7 +317,7 @@ function creatSinGraph(startPoint, endPoint){
 	}
 	sinPath.smooth();
 	// sinPath.fullySelected = true;
-	sinPath.strokeColor = arrowColor;
+	sinPath.strokeColor = color;
 	sinPath.strokeWidth = 3;
 
 	sinPathGroup.addChild(sinPath);
