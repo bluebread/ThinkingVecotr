@@ -44,22 +44,18 @@ var point2 = new Point(800, 200);
 
 GroupsInsertBelow();
 
-function GroupsInsertBelow(){
-	arrowPathGroup.insertBelow(circleGroup);
-	arrowStrokeGroup.insertBelow(arrowPathGroup);
-	sinPathGroup.insertBelow(arrowPathGroup);
-	dashGroup.insertBelow(arrowStrokeGroup);
-	dashGroup.insertBelow(sinPathGroup);	
-}
-
-
 function onMouseDown(event) {
 	if (!circleBusy) {
 		clickStartPoint = event.point;
 		creatCircle(event.point, myRadius, 'blue');
 	}
 }
-
+function GroupsInsertBelow(){
+	arrowPathGroup.insertBelow(circleGroup);
+	arrowStrokeGroup.insertBelow(arrowPathGroup);
+	sinPathGroup.insertBelow(arrowPathGroup);
+	dashGroup.insertBelow(arrowStrokeGroup);	
+}
 
 //set circle to listen lots of events
 Path.prototype.circleListener = function(){
