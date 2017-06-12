@@ -1,10 +1,13 @@
 # Thinking Vector
 
-## Get Started
-	Step1: Click the mouse and create 'Arugument Circle'.
-	Step2: Drag and create 'Thinking Vector'.
-	Step3: Create your own 'Blueprint'!
+## About
+Thinking Vector can be used to draw tree diagrams with four types of logic vector and make your report more understandable and sensible.It is based on paper.js and bootstrap framwork.
 
+## Get Started
+	1. Click and create 'Arugument Circle'.
+	2. Drag your mouse from circle and create 'Thinking Vector'.
+	3. Change the type of vector through "Vectors" dropdown menu.
+	4. Create your own tree diagram.
 ## Example
 - Version 1.1.1:
 
