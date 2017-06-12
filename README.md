@@ -1,7 +1,7 @@
 # Get to Start
-	1. Click the mouse and create 'Arugument Circle'.
-	2. Drag and create 'Thinking Vector'.
-	3. Create your own 'Blueprint'!
+	Step1: Click the mouse and create 'Arugument Circle'.
+	Step2: Drag and create 'Thinking Vector'.
+	Step3: Create your own 'Blueprint'!
 
 # Example
 	1. Version 1.1.0: http://imgur.com/hmFocUy
