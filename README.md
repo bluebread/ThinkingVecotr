@@ -1,7 +1,7 @@
 # Thinking Vector
 
 ## About
-Thinking Vector can be used to draw tree diagrams with four types of logic vector and make your report more understandable and sensible.It is based on paper.js and bootstrap framwork.
+Thinking Vector can be used to draw tree diagrams with four types of logic vector and make your report more understandable and sensible.It is based on Paper.js and Bootstrap framwork.
 
 ## Get Started
 	1. Click and create 'Arugument Circle'.
@@ -19,9 +19,9 @@ Thinking Vector can be used to draw tree diagrams with four types of logic vecto
 
 ![](http://i.imgur.com/ZGYuv9r.png)
 ## Vectors
-	1. Because Vector
-	2. Lead-To Vector
-	3. Not Vector(Coming soon...)
-	4. ElseIf Vector(Coming soon...)
+	1. Because Vector: Direct causal relationship
+	2. Lead-To Vector: Indirect causal relationship
+	3. Not Vector
+	4. ElseIf Vector
 ## Action(Coming soon...)
   
