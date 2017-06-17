@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link
+ href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" rel="stylesheet" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+	<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous"><!--font-awesome-->
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.11.4/paper-full.js"></script><!--paper.js-->
+
+	<link type="text/css" rel="stylesheet" href="sheets/demoStyle.css" type="text/css"><!--self css sheet-->
+</head>
+<body>
+	<nav class="navbar navbar-toggleable-md navbar-light bg-faded">
+		<button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+	    	<span class="navbar-toggler-icon"></span>
+	  	</button>
+	 	<i class="fa fa-paper-plane" aria-hidden="true"></i>
+	  	<a class="navbar-brand" href="#">Thinking Vector</a>
+	  	<div class="collapse navbar-collapse" id="navbarNavDropdown">
+	    	<ul class="navbar-nav">
+	      		<li class="nav-item dropdown">
+		        	<a class="nav-link dropdown-toggle" href="http://example.com" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Vectors</a>
+			        <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+			          <a class="dropdown-item" id="BV" href="#">Because</a>
+			          <a class="dropdown-item" id="LTV" href="#">Lead To</a>
+			          <a class="dropdown-item" id="NV" href="#">Not</a>
+			          <a class="dropdown-item" id="EIV" href="#">Else If</a>
+			        </div>
+	      		</li>
+	    	</ul>
+	  	</div>
+	</nav>
+	<script type="text/paperscript" src="sheets/canvasSheet.js" canvas="myCanvas"></script>
+	<canvas id="myCanvas" resize="true"></canvas>
+	<footer class="footer">
+		<p>© BlueBread 2017</p>
+	</footer>
+</body>
+</html>
