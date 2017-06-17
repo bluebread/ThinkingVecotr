@@ -24,3 +24,17 @@ body{
 	margin-bottom: 10px;
 	background-color: #F5F5DC;
 }
+#circleForm{
+	display: none;
+	padding: 50px 5vw; 
+}
+label{
+	padding-left: 0;
+	font-weight: bold;
+}
+h3{
+	font-weight: bolder;
+}
+#denyBox{
+	margin: 0 10px;
+}

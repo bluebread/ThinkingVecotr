@@ -1,6 +1,5 @@
 paper.install(window);
 
-
 var clickStartPoint,
 	clickEndPoint,
 	myCircle,
@@ -114,6 +113,16 @@ Path.prototype.circleListener = function(){
 		if(auxDashLine){
 			auxDashLine.opacity = 0;
 		}
+	}
+	this.onDoubleClick = function(event) {
+		$.fancybox.open({
+		    src  : '#circleForm',
+		    type : 'inline',
+		    opts : {
+      			afterShow : function( instance, current ) {},
+      			smallBtn: false
+    		}
+  		});
 	}
 }
 Path.prototype.auxDashLineListener = function() {
