@@ -10,7 +10,8 @@ var clickStartPoint,
 	elsIfDashLine,
 	notPath,
 	notStroke,
-	auxDashLine;
+	auxDashLine,
+	nowCircle;
 //The switch of Vectors
 var whichVector = "BecauseVector";
 //colors
@@ -37,6 +38,7 @@ main();
 function main(argument) {
 	GroupsInsertBelow();
 	vecBottomListener();
+	circleFormListenr();
 }
 function onMouseDown(event) {
 	if (!circleBusy) {
@@ -69,6 +71,11 @@ function vecBottomListener(){
 	$("#EIV").click(function(event) {
 		console.log("EIV CONNECTED!")
 		whichVector = 'ElseIfVector';
+	});
+}
+function circleFormListenr() {
+	$('#deleteButton').click(function(event){
+		nowCircle.remove();
 	});
 }
 function chooseVector(circleCenter, mousePoint){
@@ -115,6 +122,7 @@ Path.prototype.circleListener = function(){
 		}
 	}
 	this.onDoubleClick = function(event) {
+		nowCircle = this;
 		$.fancybox.open({
 		    src  : '#circleForm',
 		    type : 'inline',
