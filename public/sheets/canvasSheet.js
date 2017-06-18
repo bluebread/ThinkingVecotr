@@ -189,19 +189,19 @@ function setNotVector(startPoint, endPoint, color) {
 //The part of auxiliary line
 function creatAuxDash(center, endPoint, color) {
 	var horizonVector = endPoint - center;
-	var verticalVector = new Point(-horizonVector.y, horizonVector.x);
 	nowAuxDashLine = new Path();
 	initDashLine(nowAuxDashLine, 'gray', auxDashGroup);
-	drawStraightLine(verticalVector, endPoint, nowAuxDashLine);
+	drawStraightLine(horizonVector, center, nowAuxDashLine);
 	nowAuxDashLine.auxDashLineListener();
 }
 function drawStraightLine(vector, point, line) {
-	var A = vector.x,
-		B = vector.y;
-	for (var dashX = 0 ; dashX < 1300; dashX += 40) {
-		var dashY = ((-A) / B) * (dashX - point.x) + point.y;
+	var unitVector = vector / vector.length;
+	console.log(unitVector);
+	for(var i = 0 ; i < 1500 ; i++){
+		var dashX = point.x + unitVector.x * i;
+		var dashY = point.y + unitVector.y * i;
 		var dashPoint = new Point(dashX, dashY);
-		line.add(dashPoint);
+		line.add(dashPoint);		
 	}
 }
 //The part of 'ElseIf Vector'
