@@ -1,5 +1,5 @@
 paper.install(window);
-
+console.log(24);
 //The items which have been controled now
 var nowArrStroke,
 	nowArrPath;
@@ -9,8 +9,11 @@ var nowNotPath,
 	nowNotStroke;
 var nowAuxDashLine;
 var nowCircle;
+//The lists
+var datavecList = [],
+	datacirList = [];
 //The switch of Vectors
-var whichVector = "BecauseVector";
+var whichVector = "BV";
 //colors
 var circleColor = '#0000FF',
 	vectorColor = '#1E90FF',
@@ -33,15 +36,16 @@ var circleGroup    = new Group(),
 
 main();
 
-function main(argument) {
-	GroupsInsertBelow();
-	navbarListener();
-	circleFormListenr();
-}
 function onMouseDown(event) {
 	if (!circleBusy) {
 		creatCircle(event.point, myRadius, circleColor);
 	}
+}
+
+function main(argument) {
+	GroupsInsertBelow();
+	navbarListener();
+	circleFormListenr();
 }
 function GroupsInsertBelow(){
 	ArrPathGroup.insertBelow(circleGroup);
@@ -52,22 +56,82 @@ function GroupsInsertBelow(){
 	elsIfDashGroup.insertBelow(sinPathGroup);
 	auxDashGroup.insertBelow(elsIfDashGroup);	
 }
+function chooseVector(circleCenter, mousePoint){
+	if (whichVector === 'BV') {
+		setBecVector(circleCenter, mousePoint, vectorColor);
+		nowArrStroke.removeOnDrag();
+		nowArrPath.removeOnDrag();	
+	}else if(whichVector === 'LTV'){
+		setLeadToVector(circleCenter, mousePoint, vectorColor);
+		nowSinPath.removeOnDrag();
+	}else if(whichVector === 'NV'){
+		setNotVector(circleCenter, mousePoint, notColor);
+		nowNotStroke.removeOnDrag();
+		nowNotPath.removeOnDrag();
+	}else if(whichVector === 'EIV'){			
+		setElseIfVector(circleCenter, mousePoint, vectorColor);
+		nowEIDashLine.removeOnDrag();
+	}else{
+		return undefined;
+	}
+}
+//set self object
+function Datavec(startPoint, endPoint, type) { // the data about this vector
+	this.startPoint = startPoint;
+	this.endPoint   = endPoint;
+	this.vector     = endPoint - startPoint;
+	this.type       = type;
+	this.links      = {};
+	this.addLink = function(key, item) {
+		if (key === "circle") {
+			this.links.circle = item;
+		}else if (key === "stroke") {
+			this.links.arrStroke = item;
+		}else if (key === "path") {
+			this.links.arrPath = item;
+		}else if (key === "sin") {
+			this.links.sinPath = item;
+		}else if (key === "!stroke") {
+			this.links.notStroke = item;
+		}else if (key === "!path") {
+			this.links.notPath = item;
+		}else if (key === "dash") {
+			this.links.eiDashLine = item;
+		}else if (key === "aux") {
+			this.links.auxLine = item;
+		}else{
+			console.log("ADDLINK ERROR!!")
+			return null;
+		}
+	};
+}
+function Datacir(argument) { //the data about this circle
+	this.center  = center;
+	this.radius  = radius;
+	this.vectors = [];
+	//the form content
+	this.title   = "";
+	this.content = "";
+	this.brand   = "";
+}
+
+//set listeners
 function navbarListener(){
 	$("#BV").click(function(event) {
 		console.log("BV CONNECTED!")
-		whichVector = 'BecauseVector';
+		whichVector = 'BV';
 	});
 	$("#LTV").click(function(event) {
 		console.log("LTV CONNECTED!")
-		whichVector = 'LeadToVector';
+		whichVector = 'LTV';
 	});
 	$("#NV").click(function(event) {
 		console.log("NV CONNECTED!")
-		whichVector = 'NotVector';
+		whichVector = 'NV';
 	});
 	$("#EIV").click(function(event) {
 		console.log("EIV CONNECTED!")
-		whichVector = 'ElseIfVector';
+		whichVector = 'EIV';
 	});
 	$('#ALB').click(function(event){
 		console.log("ALB CONNECTED!")
@@ -84,31 +148,11 @@ function circleFormListenr() {
 		nowCircle.remove();
 	});
 }
-function chooseVector(circleCenter, mousePoint){
-	if (whichVector === 'BecauseVector') {
-		setBecVector(circleCenter, mousePoint, vectorColor);
-		nowArrStroke.removeOnDrag();
-		nowArrPath.removeOnDrag();	
-	}else if(whichVector === 'LeadToVector'){
-		creatSinGraph(circleCenter, mousePoint, vectorColor);
-		nowSinPath.removeOnDrag();
-	}else if(whichVector === 'NotVector'){
-		setNotVector(circleCenter, mousePoint, notColor);
-		nowNotStroke.removeOnDrag();
-		nowNotPath.removeOnDrag();
-	}else if(whichVector === 'ElseIfVector'){			
-		setElseIfVector(circleCenter, mousePoint, vectorColor);
-		nowEIDashLine.removeOnDrag();
-	}else{
-		return undefined;
-	}
-}
-
-//set listeners
 Path.prototype.circleListener = function(){
 	this.onMouseEnter = function(event) {
 		this.fillColor = '#00BFFF';
 		circleBusy = true;
+		nowCircle = this;
 	}
 	this.onMouseLeave = function(event) {
 	    this.fillColor = circleColor;
@@ -119,20 +163,42 @@ Path.prototype.circleListener = function(){
 			chooseVector(this.data.center, event.point);
 			//set auxiliary line
 			creatAuxDash(this.data.center, event.point, 'gray');
-			nowAuxDashLine.removeOnDrag();	
+			nowAuxDashLine.removeOnDrag();
 		}
+	}
+	this.onMouseDown = function(event) {
+		circleBusy = true;
 	}
 	this.onMouseUp = function(event){
 		if(nowAuxDashLine){
-			if (auxlineDisplay) {
-				nowAuxDashLine.opacity = 0.4;
-			} else {
-				nowAuxDashLine.opacity = 0;
-			}
+			auxlineDisplay ? nowAuxDashLine.opacity = 0.4 : nowAuxDashLine.opacity = 0;
 		}
+
+		var datavec = new Datavec(this.data.center, event.point, whichVector)
+		datavec.addLink("circle", this);
+		console.log("circleBusy is " + circleBusy);
+		console.log(whichVector);
+		if (whichVector === 'BV' && !circleBusy) {
+			datavec.addLink("stroke", nowArrStroke);
+			datavec.addLink("path", nowArrPath);
+			datavecList.push(datavec);
+		}else if(whichVector === 'LTV' && !circleBusy){
+			datavec.addLink("sin", nowSinPath);
+			datavecList.push(datavec);
+		}else if(whichVector === 'NV' && !circleBusy){
+			datavec.addLink("!stroke", nowNotStroke);
+			datavec.addLink("!path", nowNotPath);
+			datavecList.push(datavec);
+		}else if(whichVector === 'EIV' && !circleBusy){
+			datavec.addLink("dash", nowEIDashLine);
+			datavecList.push(datavec);
+		}else{
+			return undefined;
+		}
+		console.log(datavec.links);
+		console.log(datavecList);
 	}
 	this.onDoubleClick = function(event) {
-		nowCircle = this;
 		$.fancybox.open({
 		    src  : '#circleForm',
 		    type : 'inline',
@@ -196,7 +262,6 @@ function creatAuxDash(center, endPoint, color) {
 }
 function drawStraightLine(vector, point, line) {
 	var unitVector = vector / vector.length;
-	console.log(unitVector);
 	for(var i = 0 ; i < 1500 ; i++){
 		var dashX = point.x + unitVector.x * i;
 		var dashY = point.y + unitVector.y * i;
@@ -315,18 +380,11 @@ function creatSinGraph(startPoint, endPoint, color){
 
 	sinPathGroup.addChild(nowSinPath);
 }
-function setLeadToVector(center1, center2) {
-	// set a 'LeadTo Vector'
-	//magic numbers
-	var whiteSpace = 1/6,
-		shortenRate = 4/6;
-	//vector
-	var vector1to2 = center2 - center1;
-	var shortenVec = vector1to2;
-	shortenVec.length *= shortenRate;
-	//startPoint
-	var lineStart = center1 + vector1to2 * whiteSpace;
-	var lineEnd = lineStart + shortenVec;
+function setLeadToVector(startPoint, endPoint, color) {
+	creatSinGraph(startPoint, endPoint, color);
 
-	creatSinGraph(lineStart, lineEnd);
+	// var datavec = new Datavec(startPoint, endPoint, "LTV");
+	// datavec.addLink("sin", nowSinPath);
+	// // datavec.addLink("circle", nowCircle);
+	// datavecList.push(datavec);
 }
