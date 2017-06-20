@@ -1,5 +1,5 @@
 paper.install(window);
-console.log(28);
+console.log(29);
 //The items which have been controled now
 var nowArrPath;
 var nowSinPath;
@@ -7,6 +7,7 @@ var nowEIDashLine;
 var nowNotPath;
 var nowAuxDashLine;
 var nowCircle;
+var nowRemoveCircle;
 //The lists
 var datavecList = [],
 	datacirList = [];
@@ -145,6 +146,9 @@ function circleFormListenr() {
 		formBusy = false;
 		busyLicense = (!circleBusy && !formBusy)
 		busyLicense && (nowCircle.remove());
+		datacirList.forEach(function(datacir, index, array) {
+			(datacir.self == nowRemoveCircle) && (array.splice(index,1));
+		})
 	});
 	$('#SB').click(function(event) {
 		formBusy = false;
@@ -177,49 +181,14 @@ Path.prototype.circleListener = function(){
 	}
 	this.onMouseUp = function(event){
 		Boolean(nowAuxDashLine) && (auxlineDisplay ? nowAuxDashLine.opacity = 0.4 : nowAuxDashLine.opacity = 0);
-		
-		busyLicense = (!circleBusy && !formBusy)
-		var datavec = new Datavec(this.data.center, event.point, whichVector)
-
-		var listenerCir = this;
-		var thisDatacir;
-		datacirList.forEach(function(datacir) {
-			(datacir.self == listenerCir) && (thisDatacir = datacir);
-		})
-
-		if (whichVector === 'BV' && busyLicense) {
-			datavec.addLink("circle", this);
-			datavec.addLink("path", nowArrPath);
-			thisDatacir.vectors.push(datavec);
-			datavecList.push(datavec);
-		}else if(whichVector === 'LTV' && busyLicense){
-			datavec.addLink("circle", this);
-			datavec.addLink("sin", nowSinPath);
-			thisDatacir.vectors.push(datavec);
-			datavecList.push(datavec);
-		}else if(whichVector === 'NV' && busyLicense){
-			datavec.addLink("circle", this);
-			datavec.addLink("!path", nowNotPath);
-			thisDatacir.vectors.push(datavec);
-			datavecList.push(datavec);
-		}else if(whichVector === 'EIV' && busyLicense){
-			datavec.addLink("circle", this);
-			datavec.addLink("dash", nowEIDashLine);
-			thisDatacir.vectors.push(datavec);
-			datavecList.push(datavec);
-		}else{
-			return undefined;
-		}
-		console.log(datavec.links);
-		console.log(thisDatacir.vectors);
-		console.log(datavecList);
-		console.log(datacirList);
+		MouseUpSavingData(this);
 	}
 	this.onDoubleClick = function(event) {
 		circleBusy = true;
 		formBusy = true;
 		busyLicense = (!circleBusy && !formBusy)
 		busyLicense && (nowCircle = this);
+		nowRemoveCircle = this;
 		$.fancybox.open({
 		    src  : '#circleForm',
 		    type : 'inline',
@@ -228,6 +197,43 @@ Path.prototype.circleListener = function(){
       			smallBtn: false
     		}
   		});
+	}
+	function MouseUpSavingData(thisCicle) {
+		var datavec = new Datavec(thisCicle.data.center, event.point, whichVector)
+		var thisDatacir;
+
+		commandSave(thisCicle);
+
+		console.log("======================")
+		console.log(datavec.links);
+		console.log(thisDatacir.vectors);
+		console.log(datavecList);
+		console.log(datacirList);
+		console.log("======================")
+
+		function commandSave(thisCicle) {
+			busyLicense = (!circleBusy && !formBusy)
+			datacirList.forEach(function(datacir) {
+				(datacir.self == thisCicle) && (thisDatacir = datacir);
+			})
+			if (whichVector === 'BV' && busyLicense) {
+				saveDatavec(thisCicle, "path", nowArrPath);
+			}else if(whichVector === 'LTV' && busyLicense){
+				saveDatavec(thisCicle, "sin", nowSinPath);
+			}else if(whichVector === 'NV' && busyLicense){
+				saveDatavec(thisCicle, "!path", nowNotPath);
+			}else if(whichVector === 'EIV' && busyLicense){
+				saveDatavec(thisCicle, "dash", nowEIDashLine);
+			}else{
+				return undefined;
+			}
+		}
+		function saveDatavec(thisCicle, command, nowVector) {
+			datavec.addLink("circle", thisCicle);
+			datavec.addLink(command, nowVector);
+			thisDatacir.vectors.push(datavec);
+			datavecList.push(datavec);
+		}
 	}
 }
 Path.prototype.auxDashLineListener = function() {
@@ -321,60 +327,75 @@ function initPath(path, color, length, group) {
 	group.addChild(path);
 }
 function setBecVector(startPoint, endPoint, color){
-	//magic number
-	var shortenParam = 0.1;
-	//create arrow line
-	var myRevVec = -(endPoint - startPoint);//reverse vector
-	var myRevShortVec = myRevVec * shortenParam;
-	//restrict the length of arrow path
-	var maxArrPath = 30;
-	if (myRevShortVec > maxArrPath) {
-		myRevShortVec /= myRevShortVec.length;
-		myRevShortVec *= maxArrPath;
-	}
-	//create right arrow line
-	var rightVec = myRevShortVec.clone();
-	var leftVec = myRevShortVec.clone();
-	//rotate the angle
-	rightVec.angle += 30;
-	leftVec.angle -= 30;
+	var revVec,
+		revShortVec,
+		rightVec,
+		leftVec;
 
-	var rightEnd = endPoint + rightVec,
-		leftEnd  = endPoint + leftVec;
-	var segments = [startPoint,
-					endPoint,
-					rightEnd,
-					endPoint,
-					leftEnd,
-					endPoint,
-					startPoint];
+	initRevShortVec();
 	//create arrow
-	nowArrPath = new Path(segments);
-	initPath(nowArrPath, color, myRevVec.length, ArrPathGroup);
+	nowArrPath = new Path(arrSegments());
+	initPath(nowArrPath, color, revVec.length, ArrPathGroup);
+
+	function initRevShortVec(argument) {
+		//create arrow line
+		revVec = -(endPoint - startPoint);//reverse vector
+		revShortVec = revVec * 0.1;
+		//restrict the length of arrow path
+		var maxArrPath = 30;
+		if (revShortVec > maxArrPath) {
+			revShortVec /= revShortVec.length;
+			revShortVec *= maxArrPath;
+		}
+	}
+	function arrSegments(argument) {
+		//create right arrow line
+		rightVec = revShortVec.clone();
+		leftVec = revShortVec.clone();
+		//rotate the angle
+		rightVec.angle += 30;
+		leftVec.angle -= 30;
+
+		var rightEnd = endPoint + rightVec,
+			leftEnd  = endPoint + leftVec;
+		var segments = [startPoint,
+						endPoint,
+						rightEnd,
+						endPoint,
+						leftEnd,
+						endPoint,
+						startPoint];
+		return segments;
+	}
 }
 
 //The Part of 'LeadTo Vector'
 function setLeadToVector(startPoint, endPoint, color){
 	var sinPathVector = endPoint - startPoint;
-	nowSinPath = new Path();
-	//magic numbers
-	var height = 10,
-		wavelength = 18,
-		timeOfWave = sinPathVector.length/18,
-		radian_degree_rate = Math.PI / 360,
-		unitOfSinX = 50,
-		telescopeSinX = 20;
-	for (var sinX = 0; sinX < 360 * timeOfWave; sinX += unitOfSinX) {
-		var radian = sinX * radian_degree_rate;//trun degree to radian
-		var sinY = Math.sin(radian) * height;
-		var sinPoint = new Point(sinX / telescopeSinX, sinY);
-		sinPoint.angle += sinPathVector.angle;
-		sinPoint += startPoint;
-		nowSinPath.add(sinPoint);
+	initSinPath();
+	drawSinPath();
+	function initSinPath() {
+		nowSinPath = new Path();
+		nowSinPath.smooth();
+		nowSinPath.strokeColor = color;
+		nowSinPath.strokeWidth = 3;
+		sinPathGroup.addChild(nowSinPath);
 	}
-	nowSinPath.smooth();
-	nowSinPath.strokeColor = color;
-	nowSinPath.strokeWidth = 3;
-
-	sinPathGroup.addChild(nowSinPath);
+	function drawSinPath(argument) {
+		//magic numbers
+		var height = 10,
+			wavelength = 18,
+			timeOfWave = sinPathVector.length / wavelength,
+			radian_degree_rate = Math.PI / 360,
+			unitOfSinX = 50,
+			telescopeSinX = 20;
+		for (var sinX = 0; sinX < 360 * timeOfWave; sinX += unitOfSinX) {
+			var radian = sinX * radian_degree_rate;//trun degree to radian
+			var sinY = Math.sin(radian) * height;
+			var sinPoint = new Point(sinX / telescopeSinX, sinY);
+			sinPoint.angle += sinPathVector.angle;
+			sinPoint += startPoint;
+			nowSinPath.add(sinPoint);
+		}
+	}
 }
