@@ -24,13 +24,6 @@
 	 	<i class="fa fa-paper-plane" aria-hidden="true"></i>
 	  	<a class="navbar-brand" href="#">Thinking Vector</a>
 	  	<div class="collapse navbar-collapse" id="navbarNavDropdown">
-	    	<form class="form-inline my-2 my-lg-0">
-	    		<div class="btn-group" data-toggle="buttons">
-					<label class="btn btn-outline-warning my-2 my-sm-0" id="ALB">
-						<input type="checkbox" autocomplete="off"> AuxLine 
-					</label>
-				</div>
-    		</form>
 	    	<ul class="navbar-nav">
 	      		<li class="nav-item dropdown">
 		        	<a class="nav-link dropdown-toggle" href="http://example.com" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Vectors</a>
@@ -43,6 +36,13 @@
 	      		</li>
 	    	</ul>
 	  	</div>
+	    <form class="form-inline my-2 my-lg-0">
+	    	<div class="btn-group" data-toggle="buttons">
+				<label class="btn btn-outline-warning my-2 my-sm-0" id="ALB">
+					<input type="checkbox" autocomplete="off"> AuxLine 
+				</label>
+			</div>
+    	</form>
 	</nav>
 	<div id="circleForm" class="col-6">
 		<form>
@@ -61,7 +61,7 @@
 				<label for="description">Description</label>
 				<textarea class="form-control col-12" rows="3" name="description"></textarea>
 			</div>
-			<button type="button" data-fancybox-close class="btn btn-success btn-lg btn-block">Save</button>
+			<button type="button" data-fancybox-close class="btn btn-success btn-lg btn-block" id="SB">Save</button>
 			<button type="button" data-fancybox-close class="btn btn-danger btn-lg btn-block" id="DB">Delete</button>
 		</form>
 	</div>
