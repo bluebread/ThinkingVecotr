@@ -1,13 +1,13 @@
 paper.install(window);
-console.log(29);
+console.log(32);
 //The items which have been controled now
-var nowArrPath;
-var nowSinPath;
-var nowEIDashLine;
-var nowNotPath;
-var nowAuxDashLine;
-var nowCircle;
-var nowRemoveCircle;
+var nowArrPath,
+	nowSinPath,
+	nowEIDashLine,
+	nowNotPath,
+	nowAuxDashLine,
+	nowCircle,
+	nowRemoveCircle;
 //The lists
 var datavecList = [],
 	datacirList = [];
@@ -15,16 +15,20 @@ var datavecList = [],
 var whichVector = "BV";
 //colors
 var circleColor = '#0000FF',
-	vectorColor = '#1E90FF',
-	notColor    = '#FF4500';//Orangered
+	becColor    = '#1E90FF',
+	sinColor    = '#1E90FF',
+	notColor    = '#FF4500',//Orangered
+	eiColor     = '#00BFFF';
 //magic numbers
 var myRadius = 25;
 var arrayDash = [];
 //Booleans
-var circleBusy = false;
-var formBusy = false;
-var busyLicense = (!circleBusy && !formBusy);
-var auxlineDisplay = false;
+var circleBusy       = false,
+	formBusy         = false,
+	vectorBusy       = false,
+	circleActionBusy = false,
+	vectorActionBusy = false,
+	auxlineDisplay   = false;
 //Groups
 var circleGroup    = new Group(),
 	ArrPathGroup   = new Group(),
@@ -36,7 +40,7 @@ var circleGroup    = new Group(),
 main();
 
 function onMouseDown(event) {
-	busyLicense = (!circleBusy && !formBusy);
+	var busyLicense = (!circleBusy && !formBusy && !vectorBusy);
 	if(busyLicense){
 		creatCircle(event.point, myRadius, circleColor);
 		var datacir = new Datacir(nowCircle, event.point, myRadius);
@@ -58,16 +62,16 @@ function GroupsInsertBelow(){
 }
 function chooseVector(circleCenter, mousePoint){
 	if (whichVector === 'BV') {
-		setBecVector(circleCenter, mousePoint, vectorColor);
+		setBecVector(circleCenter, mousePoint, becColor);
 		nowArrPath.removeOnDrag();	
 	}else if(whichVector === 'LTV'){
-		setLeadToVector(circleCenter, mousePoint, vectorColor);
+		setLeadToVector(circleCenter, mousePoint, sinColor);
 		nowSinPath.removeOnDrag();
 	}else if(whichVector === 'NV'){
 		setNotVector(circleCenter, mousePoint, notColor);
 		nowNotPath.removeOnDrag();
 	}else if(whichVector === 'EIV'){			
-		setElseIfVector(circleCenter, mousePoint, vectorColor);
+		setElseIfVector(circleCenter, mousePoint, eiColor);
 		nowEIDashLine.removeOnDrag();
 	}else{
 		return undefined;
@@ -144,8 +148,7 @@ function circleFormListenr() {
 	$('#DB').click(function(event){
 		console.log("DB CLICKED!");
 		formBusy = false;
-		busyLicense = (!circleBusy && !formBusy)
-		busyLicense && (nowCircle.remove());
+		nowRemoveCircle.remove();
 		datacirList.forEach(function(datacir, index, array) {
 			(datacir.self == nowRemoveCircle) && (array.splice(index,1));
 		})
@@ -156,39 +159,33 @@ function circleFormListenr() {
 }
 Path.prototype.circleListener = function(){
 	this.onMouseEnter = function(event) {
-		this.fillColor = '#00BFFF';
-		busyLicense = (!circleBusy && !formBusy)
-		busyLicense && (nowCircle = this);
 		circleBusy = true;
+		nowCircle = this;
+		this.fillColor = '#00BFFF';
 	}
 	this.onMouseLeave = function(event) {
-	    this.fillColor = circleColor;
 	    circleBusy = false;
+	    this.fillColor = circleColor;
 	}
 	this.onMouseDrag = function(event){
-		busyLicense = (!circleBusy && !formBusy)
+		var busyLicense = (!circleBusy && !formBusy)
 		if (busyLicense) {
 			chooseVector(this.data.center, event.point);
-			//set auxiliary line
 			creatAuxDash(this.data.center, event.point, 'gray');
 			nowAuxDashLine.removeOnDrag();
 		}
 	}
 	this.onMouseDown = function(event) {
 		circleBusy = true;
-		busyLicense = (!circleBusy && !formBusy)
-		busyLicense && (nowCircle = this);
 	}
 	this.onMouseUp = function(event){
 		Boolean(nowAuxDashLine) && (auxlineDisplay ? nowAuxDashLine.opacity = 0.4 : nowAuxDashLine.opacity = 0);
-		MouseUpSavingData(this);
+		MouseUpSavingData(this, event);
 	}
 	this.onDoubleClick = function(event) {
 		circleBusy = true;
-		formBusy = true;
-		busyLicense = (!circleBusy && !formBusy)
-		busyLicense && (nowCircle = this);
-		nowRemoveCircle = this;
+		var busyLicense = (!formBusy)
+		busyLicense && (nowRemoveCircle = this);
 		$.fancybox.open({
 		    src  : '#circleForm',
 		    type : 'inline',
@@ -198,9 +195,9 @@ Path.prototype.circleListener = function(){
     		}
   		});
 	}
-	function MouseUpSavingData(thisCicle) {
-		var datavec = new Datavec(thisCicle.data.center, event.point, whichVector)
-		var thisDatacir;
+	function MouseUpSavingData(thisCicle, thisEvent) {
+		var datavec = new Datavec(thisCicle.data.center, thisEvent.point, whichVector)
+		var thisDatacir;	
 
 		commandSave(thisCicle);
 
@@ -212,10 +209,10 @@ Path.prototype.circleListener = function(){
 		console.log("======================")
 
 		function commandSave(thisCicle) {
-			busyLicense = (!circleBusy && !formBusy)
 			datacirList.forEach(function(datacir) {
 				(datacir.self == thisCicle) && (thisDatacir = datacir);
 			})
+			var busyLicense = (!circleBusy && !formBusy)
 			if (whichVector === 'BV' && busyLicense) {
 				saveDatavec(thisCicle, "path", nowArrPath);
 			}else if(whichVector === 'LTV' && busyLicense){
@@ -244,17 +241,54 @@ Path.prototype.auxDashLineListener = function() {
 		auxlineDisplay ? this.opacity = 0.4 : this.opacity = 0;
 	}
 };
+Path.prototype.vectorListener = function(type) {
+	var thisCicle = this;
+	this.onMouseEnter = function(event) {
+		vectorBusy = true;
+		setTypeColor('#00BFFF', '#00BFFF', "#FF7F50", '#1E90FF')
+	}
+	this.onMouseLeave = function(event) {
+		vectorBusy = false;
+		setTypeColor(becColor, sinColor, notColor, eiColor);
+	}
+	this.onMouseDrag = function(event) {
+		// console.log(this.segments[0]);
+		var circleCenter = this.segments[0],
+			mousePoint   = event.point;
+		var busyLicense = (!formBusy);
+		if (busyLicense) {
+			// chooseVector(circleCenter, mousePoint);
+		}
+		// console.log(nowArrPath);
+	}
+	this.onMouseDown = function(event) {
+		vectorBusy = true;
+	}
+	this.onDoubleClick = function(event) {
+		vectorBusy = true;
+	}
+	function setTypeColor(bcolor, scolor, ncolor, ecolor) {
+		if (type === 'BV') {
+			thisCicle.strokeColor = bcolor;
+		}else if(type === 'LTV'){
+			thisCicle.strokeColor = scolor;
+		}else if(type === 'NV'){
+			thisCicle.strokeColor = ncolor;
+		}else if(type === 'EIV'){
+			thisCicle.strokeColor = ecolor;
+		}else{
+			return undefined;
+		}
+	}
+};
 
 //The part of 'Not Vector'
 function setNotVector(startPoint, endPoint, color) {
-	//magic numbers
-	var shortenRate = 0.1;
-
-	var middlePoint = (startPoint + endPoint) / 2;
-	var myVector = endPoint - startPoint;
-	var myShortVec = myVector * shortenRate;
-	var toRightAngleVector = myShortVec.clone();
-	var toLeftAngleVector = myShortVec.clone();
+	var middlePoint = (startPoint + endPoint) / 2,
+		notVector   = endPoint - startPoint,
+		notShortVec    = notVector * 0.1;
+	var toRightAngleVector = notShortVec.clone(),
+		toLeftAngleVector  = notShortVec.clone();
 	toRightAngleVector.angle += 45;
 	toLeftAngleVector.angle -= 45;
 
@@ -262,16 +296,19 @@ function setNotVector(startPoint, endPoint, color) {
 		leftBottomPoint  = middlePoint - toRightAngleVector,
 		leftTopPoint     = middlePoint + toLeftAngleVector,
 		rightBottomPoint = middlePoint - toLeftAngleVector;
-	var segmentArray = [rightTopPoint, 
+	var segmentArray = [startPoint,
+						middlePoint,
+						rightTopPoint, 
 						leftBottomPoint,
 						middlePoint,
 						leftTopPoint,
 						rightBottomPoint,
 						middlePoint,
 						startPoint,
-						endPoint]
+						endPoint,
+						middlePoint]
 	nowNotPath = new Path(segmentArray);
-	initPath(nowNotPath, color, myVector.length, notPathGroup);
+	initPath(nowNotPath, color,	notVector.length, notPathGroup, 'NV');
 }
 //The part of auxiliary line
 function creatAuxDash(center, endPoint, color) {
@@ -299,7 +336,8 @@ function initDashLine(dashLine, color, group) {
 }
 function setElseIfVector(startPoint, endPoint, color) {
 	nowEIDashLine = new Path(startPoint, endPoint);
-	initDashLine(nowEIDashLine, '#00BFFF', elsIfDashGroup);
+	initDashLine(nowEIDashLine, color, elsIfDashGroup);
+	nowEIDashLine.vectorListener('EIV');
 }
 //The part of 'Circle'
 function creatCircle(center, radius, color){
@@ -311,7 +349,7 @@ function creatCircle(center, radius, color){
 	circleGroup.addChild(nowCircle);
 }
 //The part of 'Because Vector'
-function initPath(path, color, length, group) {
+function initPath(path, color, length, group, type) {
 	path.strokeColor = color;
 	path.strokeJoin = 'round';
 	//set the width of arrow path
@@ -325,6 +363,7 @@ function initPath(path, color, length, group) {
 		path.strokeWidth = minPathWidth;
 	}	
 	group.addChild(path);
+	path.vectorListener(type);
 }
 function setBecVector(startPoint, endPoint, color){
 	var revVec,
@@ -335,9 +374,9 @@ function setBecVector(startPoint, endPoint, color){
 	initRevShortVec();
 	//create arrow
 	nowArrPath = new Path(arrSegments());
-	initPath(nowArrPath, color, revVec.length, ArrPathGroup);
+	initPath(nowArrPath, color, revVec.length, ArrPathGroup, 'BV');
 
-	function initRevShortVec(argument) {
+	function initRevShortVec() {
 		//create arrow line
 		revVec = -(endPoint - startPoint);//reverse vector
 		revShortVec = revVec * 0.1;
@@ -348,7 +387,7 @@ function setBecVector(startPoint, endPoint, color){
 			revShortVec *= maxArrPath;
 		}
 	}
-	function arrSegments(argument) {
+	function arrSegments() {
 		//create right arrow line
 		rightVec = revShortVec.clone();
 		leftVec = revShortVec.clone();
@@ -378,8 +417,9 @@ function setLeadToVector(startPoint, endPoint, color){
 		nowSinPath = new Path();
 		nowSinPath.smooth();
 		nowSinPath.strokeColor = color;
-		nowSinPath.strokeWidth = 3;
+		nowSinPath.strokeWidth = 5;
 		sinPathGroup.addChild(nowSinPath);
+		nowSinPath.vectorListener('LTV');
 	}
 	function drawSinPath(argument) {
 		//magic numbers
