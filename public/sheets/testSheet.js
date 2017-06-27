@@ -1,6 +1,7 @@
 paper.install(window);
 console.log("Start!!");
 var mouse_where = "canvas";
+var mouse_action = "";
 var navbar_whichVector = "BV";
 var auxline_whetherDisplay = false;
 
@@ -11,26 +12,34 @@ var auxline_gruop = new Group();
 var circle_style = {
 	radius: 25,
 	fillColor: '#0000FF',
-	selected_color: '#00BFFF'
+	hover_fillColor: '#00BFFF'
 };
 var becVector_style = {
 	type: "BV",
 	strokeColor: '#1E90FF',
+	hover_strokeColor: '#00BFFF',
+	proto_strokeColor: '#1E90FF',
 	strokeJoin: 'round'
 };
 var sinVector_style = {
 	type: "LTV",
 	strokeWidth: 5,
-	strokeColor: '#1E90FF'
+	strokeColor: '#1E90FF',
+	hover_strokeColor: '#00BFFF',
+	proto_strokeColor: '#1E90FF'
 };
 var notVector_style = {
 	type: "NV",
 	strokeColor: '#FF4500',
+	hover_strokeColor: "#FF7F50",
+	proto_strokeColor: '#FF4500',
 	strokeJoin: "round"
 }
 var eiVector_style = {
 	type: "EIV",
 	strokeColor:'#00BFFF',
+	hover_strokeColor: '#1E90FF',
+	proto_strokeColor: '#00BFFF',
 	strokeWidth: 4,
 	dashArray: [10, 12]
 };
@@ -53,16 +62,16 @@ function onMouseDown(event) {
 function createCircle(eventPoint) {
 	var circle_createData = {};
 
-	circleDataSetting(eventPoint);
+	circleDataSetting();
 	drawCircle(circle_createData);
 	
-	function circleDataSetting(eventPoint) {
+	function circleDataSetting() {
 		circle_createData = circle_style;
 		circle_createData.center = eventPoint;
 	}
 	function drawCircle(circle_createData) {
 		var nowCircle = new Path.Circle(circle_createData);
-		nowCircle.circle_listener();
+		nowCircle.setCircleListener();
 
 		circle_group.addChild(nowCircle);
 	}
@@ -70,6 +79,30 @@ function createCircle(eventPoint) {
 function layerSetting() {
 	vector_group.insertBelow(circle_group);
 	auxline_gruop.insertBelow(vector_group);
+}
+function judgement(behavior, defendant) {
+	var conclusion = new Boolean();
+
+	if (behavior === "circle_create"){
+		conclusion = (mouse_where !== 'circle') ? true : false;
+	}else if(behavior === "form_call"){
+		conclusion = (mouse_where === 'circle') ? true : false;
+	}else if(behavior === "vector_create"){
+		conclusion = (mouse_where !== 'circle') ? true : false;
+	}else if(behavior === "vector_create_afterComplete"){
+		conclusion = (mouse_action === 'vector_create') ? true : false;
+	}else if(behavior === "vector_create_afterComplete_hover"){
+		conclusion = (mouse_action !== 'vector_create') ? true : false;
+	}else if(behavior === "vector_cross_down"){
+		return undefined;
+	}else if(behavior === "vector_cross_drag"){
+		return undefined;
+	}else if(behavior === "vector_cross_up"){
+		return undefined;
+	}else{
+		return undefined;
+	}
+	return conclusion;
 }
 function navbar_listener(){
 	$("#BV").click(function(event) {
@@ -94,9 +127,40 @@ function navbar_listener(){
 		})
 	}
 }
-Path.prototype.circle_listener = function() {
+Path.prototype.setVectorListener = function() {
+	this.onMouseEnter = function(){
+		mouseInVector();
+		judgement("vector_create_afterComplete_hover") && (this.strokeColor = this.hover_strokeColor);
+	}
+	this.onMouseLeave = function(){
+		mouseOutVector();
+		judgement("vector_create_afterComplete_hover") && (this.strokeColor = this.proto_strokeColor);
+	}
+	this.onMouseDown = function(){
+		mouseInVector();
+	}
+	this.onMouseUp = function(){
+
+	}
+	this.onMouseDrag = function(){
+
+	}
+	this.onMouseMove = function(){
+		mouseInVector();
+	}
+	this.onClick = function(){
+		mouseInVector();
+	}
+	function mouseInVector() {
+		mouse_where = 'vector';
+	}
+	function mouseOutVector() {
+		mouse_where = 'canvas';
+	}
+};
+Path.prototype.setCircleListener = function() {
 	this.onMouseEnter = function(event) {
-		this.fillColor = circle_style.selected_color;
+		this.fillColor = circle_style.hover_fillColor;
 		mouseInCircle();
 	}
 	this.onMouseLeave = function(event) {
@@ -107,7 +171,7 @@ Path.prototype.circle_listener = function() {
 		mouseInCircle();
 	}
 	this.onMouseUp = function(event) {
-		afterVectorCompleted();
+		judgement('vector_create_afterComplete') && afterVectorCompleted();
 	}
 	this.onMouseDrag = function(event) {
 		var startPoint = new Point(this.position.x, this.position.y),
@@ -132,10 +196,18 @@ Path.prototype.circle_listener = function() {
 		mouse_where = "canvas";
 	}
 	function afterVectorCompleted() {
-		var lastAuxLineIndex = auxline_gruop.children.length - 1;
-		var lastAuxLine = auxline_gruop.children[lastAuxLineIndex];
+		auxline_disppear();
+		vectorCreatingClosing();
 
-		Boolean(lastAuxLine) && (auxline_whetherDisplay ? lastAuxLine.opacity = 0.4 : lastAuxLine.opacity = 0);
+		function auxline_disppear() {
+			var lastAuxLineIndex = auxline_gruop.children.length - 1;
+			var lastAuxLine = auxline_gruop.children[lastAuxLineIndex];
+
+			Boolean(lastAuxLine) && (auxline_whetherDisplay ? lastAuxLine.opacity = 0.5 : lastAuxLine.opacity = 0);
+		}
+		function vectorCreatingClosing() {
+			 mouse_action = "";
+		}
 	}
 	function callForm(thisCircle) {
 		$.fancybox.open({
@@ -147,27 +219,42 @@ Path.prototype.circle_listener = function() {
     		}
   		});
 
-  		circleFormListenr(thisCircle);
+  		circleFormListenr();
 
-		function circleFormListenr(thisCircle) {
+		function circleFormListenr() {
 			formOpen();
+			argumentDisplay();
 
 			function formOpen() {		
 				$('#circleForm').mousemove(function(event){
 					mouse_where = 'form';	
 				});
 				$('#DB').click(function(event){
-					judgement('form_delete') && thisCircle.remove();
+					thisCircle.remove();
 					formClose();
 				});
 				$('#SB').click(function(event) {
+					savingData();
 					formClose();
 				});
+
+				function formClose() {
+					mouse_where = 'canvas';
+					$('#DB').off('click');
+					$('#SB').off('click');
+				}
+				function savingData(){
+					thisCircle.data 			= new Object();
+					thisCircle.data.isDenying   = $('label#denyBox.active')[0] ? true : false;
+					thisCircle.data.title       = $('input.cir_title').val();
+					thisCircle.data.description = $('textarea.cir_desc').val();
+				}
 			}
-			function formClose() {
-				mouse_where = 'canvas';
-				$('#DB').off('click');
-				$('#SB').off('click');
+			function argumentDisplay() {
+				thisCircle.data.isDenying ? $('label#denyBox').addClass("active")
+										  : $('label#denyBox').removeClass("active");
+				$('input.cir_title').val(thisCircle.data.title || "");
+				$('textarea.cir_desc').val(thisCircle.data.description || "");
 			}
 		}
 	}
@@ -183,6 +270,8 @@ Path.prototype.auxDashLineListener = function() {
 
 
 function createVector(startPoint, endPoint){
+	vectorCreatingInstruction();
+
 	if (navbar_whichVector === 'BV') {
 		createBecauseVector();
 	}else if(navbar_whichVector === 'LTV'){
@@ -195,6 +284,9 @@ function createVector(startPoint, endPoint){
 		return undefined;
 	}
 
+	function vectorCreatingInstruction() {
+		mouse_action = "vector_create";
+	}
 	function restrictStrokeWidth() {
 		var selfVector = endPoint - startPoint;
 		var selfPathWidth = selfVector.length / 40,
@@ -211,6 +303,7 @@ function createVector(startPoint, endPoint){
 	function drawVector(vector_createData) {
 		var nowVector = new Path(vector_createData);
 		nowVector.removeOnDrag();
+		nowVector.setVectorListener();
 
 		vector_group.addChild(nowVector);
 	}
@@ -297,7 +390,7 @@ function createVector(startPoint, endPoint){
 					toRightAngleVector = notVector * 0.1,
 					toLeftAngleVector  = notVector * 0.1;
 				toRightAngleVector.angle += 45;
-				toLeftAngleVector.angle -= 45;
+				toLeftAngleVector.angle  -= 45;
 
 				var middlePoint 	 = (startPoint + endPoint) / 2,
 					rightTopPoint    = middlePoint + toRightAngleVector,
@@ -365,27 +458,4 @@ function createAuxDashLine(startPoint, endPoint) {
 
 		auxline_gruop.addChild(nowAuxDashLine);
 	}
-}
-
-function judgement(behavior, defendant) {
-	var conclusion = new Boolean();
-
-	if (behavior === "circle_create"){
-		conclusion = (mouse_where !== 'circle') ? true : false;
-	}else if(behavior === "form_call"){
-		conclusion = (mouse_where === 'circle') ? true : false;
-	}else if(behavior === "form_delete"){
-		conclusion = (mouse_where === 'form') ? true : false;
-	}else if(behavior === "vector_create"){
-		conclusion = (mouse_where !== 'circle') ? true : false;
-	}else if(behavior === "vector_cross_down"){
-		return undefined;
-	}else if(behavior === "vector_cross_drag"){
-		return undefined;
-	}else if(behavior === "vector_cross_up"){
-		return undefined;
-	}else{
-		return undefined;
-	}
-	return conclusion;
 }
