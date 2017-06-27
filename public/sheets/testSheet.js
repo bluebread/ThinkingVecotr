@@ -5,9 +5,10 @@ var mouse_action = "";
 var navbar_whichVector = "BV";
 var auxline_whetherDisplay = false;
 
-var circle_group  = new Group();
-var vector_group  = new Group();
-var auxline_gruop = new Group();
+var circle_group     = new Group(),
+	vector_group     = new Group(),
+	auxline_gruop    = new Group(),
+	crossField_group = new Group();
 //styles
 var circle_style = {
 	radius: 25,
@@ -47,7 +48,13 @@ var auxDashLine_style = {
 	type: "ADL",
 	strokeColor:'gray',
 	strokeWidth: 4,
-	dashArray: [10, 12]
+	dashArray: [10, 12],
+	display_opacity: 0.5
+};
+var crossField_style = {
+	opacity: 1,
+	fillColor: '#e9e9ff',
+	closed: true
 }
 
 main();
@@ -78,13 +85,14 @@ function createCircle(eventPoint) {
 }
 function layerSetting() {
 	vector_group.insertBelow(circle_group);
-	auxline_gruop.insertBelow(vector_group);
+	crossField_group.insertBelow(vector_group);
+	auxline_gruop.insertBelow(crossField_group);
 }
 function judgement(behavior, defendant) {
 	var conclusion = new Boolean();
 
 	if (behavior === "circle_create"){
-		conclusion = (mouse_where !== 'circle') ? true : false;
+		conclusion = (mouse_where === 'canvas') ? true : false;
 	}else if(behavior === "form_call"){
 		conclusion = (mouse_where === 'circle') ? true : false;
 	}else if(behavior === "vector_create"){
@@ -92,13 +100,15 @@ function judgement(behavior, defendant) {
 	}else if(behavior === "vector_create_afterComplete"){
 		conclusion = (mouse_action === 'vector_create') ? true : false;
 	}else if(behavior === "vector_create_afterComplete_hover"){
-		conclusion = (mouse_action !== 'vector_create') ? true : false;
-	}else if(behavior === "vector_cross_down"){
-		return undefined;
-	}else if(behavior === "vector_cross_drag"){
-		return undefined;
-	}else if(behavior === "vector_cross_up"){
-		return undefined;
+		var conditionA = mouse_action !== 'vector_create';
+		var conditionB = mouse_action !== 'vector_cross';
+		conclusion = (conditionA && conditionB) ? true : false;
+	}else if(behavior === "vector_cross"){
+		var conditionA = mouse_where !== 'circle'
+		var conditionB = mouse_action !== 'vector_create';
+		conclusion = (conditionA && conditionB) ? true : false;
+	}else if(behavior === "vector_cross_afterComplete"){
+		conclusion = (mouse_action === 'vector_cross') ? true : false;
 	}else{
 		return undefined;
 	}
@@ -123,32 +133,32 @@ function navbar_listener(){
 	function auxline_toggle() {
 		auxline_whetherDisplay = !auxline_whetherDisplay;
 		auxline_gruop.children.forEach(function(auxDash) {
-			auxline_whetherDisplay ? auxDash.opacity = 0.5 : auxDash.opacity = 0;				
+			auxDash.opacity = auxline_whetherDisplay ? auxDashLine_style.display_opacity : 0;				
 		})
 	}
 }
 Path.prototype.setVectorListener = function() {
-	this.onMouseEnter = function(){
+	this.onMouseEnter = function(event){
 		mouseInVector();
 		judgement("vector_create_afterComplete_hover") && (this.strokeColor = this.hover_strokeColor);
 	}
-	this.onMouseLeave = function(){
+	this.onMouseLeave = function(event){
 		mouseOutVector();
 		judgement("vector_create_afterComplete_hover") && (this.strokeColor = this.proto_strokeColor);
 	}
-	this.onMouseDown = function(){
+	this.onMouseDown = function(event){
 		mouseInVector();
 	}
-	this.onMouseUp = function(){
-
+	this.onMouseUp = function(event){
+		judgement('vector_cross_afterComplete') && afterCrossCompleted.call(this);
 	}
-	this.onMouseDrag = function(){
-
+	this.onMouseDrag = function(event){
+		judgement('vector_cross') && vectorCrossing.call(this, event);
 	}
-	this.onMouseMove = function(){
+	this.onMouseMove = function(event){
 		mouseInVector();
 	}
-	this.onClick = function(){
+	this.onClick = function(event){
 		mouseInVector();
 	}
 	function mouseInVector() {
@@ -156,6 +166,45 @@ Path.prototype.setVectorListener = function() {
 	}
 	function mouseOutVector() {
 		mouse_where = 'canvas';
+	}
+	function vectorCrossing(event) {
+		vectorCrossingInstruction();
+
+		var startPosition = giveVectorStartPosition.call(this),
+			endPosition   = giveVectorEndPosition.call(this);
+		var startPoint = new Point(startPosition),
+			endPoint   = new Point(endPosition),
+			mousePoint = event.point;
+		createVector(startPoint, mousePoint);
+		createCrossField(startPoint, endPoint, mousePoint);
+
+		function vectorCrossingInstruction() {
+			mouse_action = 'vector_cross';
+		}
+		function giveVectorStartPosition() {
+			var positionX = this.segments[0].point.x,
+				positionY = this.segments[0].point.y;
+
+			return [positionX, positionY];
+		}
+		function giveVectorEndPosition() {
+			var lastIndex = this.segments.length - 1; 
+			var positionX = this.segments[lastIndex].point.x,
+				positionY = this.segments[lastIndex].point.y;
+
+			return [positionX, positionY];
+		}
+	}
+	function afterCrossCompleted() {
+		vectorClear.call(this);
+		vectorCrossingClosing();
+
+		function vectorCrossingClosing() {
+			mouse_action = "";
+		}
+		function vectorClear(){
+			this.strokeColor = this.proto_strokeColor;
+		 } 
 	}
 };
 Path.prototype.setCircleListener = function() {
@@ -174,10 +223,7 @@ Path.prototype.setCircleListener = function() {
 		judgement('vector_create_afterComplete') && afterVectorCompleted();
 	}
 	this.onMouseDrag = function(event) {
-		var startPoint = new Point(this.position.x, this.position.y),
-			endPoint   = event.point;
-		judgement("vector_create") && createVector(startPoint, endPoint);
-		judgement("vector_create") && createAuxDashLine(startPoint, endPoint);
+		judgement("vector_create") && vectorCreating.call(this, event);
 	}
 	this.onMouseMove = function(event) {
 		mouseInCircle();
@@ -195,6 +241,18 @@ Path.prototype.setCircleListener = function() {
 	function mouseOutCircle() {
 		mouse_where = "canvas";
 	}
+	function vectorCreating(event) {
+		vectorCreatingInstruction();
+
+		var startPoint = new Point(this.position.x, this.position.y),
+			endPoint   = event.point;
+		createVector(startPoint, endPoint);
+		createAuxDashLine(startPoint, endPoint);
+
+		function vectorCreatingInstruction() {
+			mouse_action = "vector_create";
+		}
+	}
 	function afterVectorCompleted() {
 		auxline_disppear();
 		vectorCreatingClosing();
@@ -203,7 +261,7 @@ Path.prototype.setCircleListener = function() {
 			var lastAuxLineIndex = auxline_gruop.children.length - 1;
 			var lastAuxLine = auxline_gruop.children[lastAuxLineIndex];
 
-			Boolean(lastAuxLine) && (auxline_whetherDisplay ? lastAuxLine.opacity = 0.5 : lastAuxLine.opacity = 0);
+			Boolean(lastAuxLine) && (lastAuxLine.opacity = auxline_whetherDisplay ? auxDashLine_style.display_opacity : 0);
 		}
 		function vectorCreatingClosing() {
 			 mouse_action = "";
@@ -239,9 +297,9 @@ Path.prototype.setCircleListener = function() {
 				});
 
 				function formClose() {
-					mouse_where = 'canvas';
 					$('#DB').off('click');
 					$('#SB').off('click');
+					mouse_where = 'canvas';
 				}
 				function savingData(){
 					thisCircle.data 			= new Object();
@@ -264,14 +322,37 @@ Path.prototype.auxDashLineListener = function() {
 	    this.opacity = 1;
 	}
 	this.onMouseLeave = function(event) {
-		auxline_whetherDisplay ? this.opacity = 0.4 : this.opacity = 0;
+		this.opacity = auxline_whetherDisplay ? auxDashLine_style.display_opacity : 0;
 	}
 };
 
+function createCrossField(startPoint, endPoint, mousePoint) {
+	var cf_createData = {};
 
+	cfDataSetting();
+	drawCrossField(cf_createData);
+
+	function cfDataSetting() {
+		cf_createData = crossField_style;
+		cf_createData.segments = giveCfSegments();
+
+		function giveCfSegments() {
+			var crossFiledPoint = endPoint + mousePoint - startPoint;
+			var segments = [startPoint,
+							endPoint,
+							crossFiledPoint,
+							mousePoint];
+			return segments;
+		}
+	}
+	function drawCrossField(cf_createData) {
+		var nowCrossField = new Path(cf_createData);
+		nowCrossField.removeOnDrag();
+
+		crossField_group.addChild(nowCrossField);
+	}
+}
 function createVector(startPoint, endPoint){
-	vectorCreatingInstruction();
-
 	if (navbar_whichVector === 'BV') {
 		createBecauseVector();
 	}else if(navbar_whichVector === 'LTV'){
@@ -284,9 +365,6 @@ function createVector(startPoint, endPoint){
 		return undefined;
 	}
 
-	function vectorCreatingInstruction() {
-		mouse_action = "vector_create";
-	}
 	function restrictStrokeWidth() {
 		var selfVector = endPoint - startPoint;
 		var selfPathWidth = selfVector.length / 40,
@@ -332,8 +410,7 @@ function createVector(startPoint, endPoint){
 								arrRightPoint,
 								endPoint,
 								arrLeftPoint,
-								endPoint,
-								startPoint];
+								endPoint];
 				return segments;
 			}
 		}
@@ -405,8 +482,7 @@ function createVector(startPoint, endPoint){
 								leftTopPoint,
 								rightBottomPoint,
 								middlePoint,
-								endPoint,
-								startPoint];
+								endPoint];
 				return segments;
 			}
 		}
