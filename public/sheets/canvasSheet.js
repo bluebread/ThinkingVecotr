@@ -1,225 +1,349 @@
 paper.install(window);
-console.log(28);
-//The items which have been controled now
-var nowArrPath;
-var nowSinPath;
-var nowEIDashLine;
-var nowNotPath;
-var nowAuxDashLine;
-var nowCircle;
-//The lists
-var datavecList = [],
-	datacirList = [];
-//The switch of Vectors
-var whichVector = "BV";
-//colors
-var circleColor = '#0000FF',
-	vectorColor = '#1E90FF',
-	notColor    = '#FF4500';//Orangered
-//magic numbers
-var myRadius = 25;
-var arrayDash = [];
-//Booleans
-var circleBusy = false;
-var formBusy = false;
-var busyLicense = (!circleBusy && !formBusy);
-var auxlineDisplay = false;
-//Groups
-var circleGroup    = new Group(),
-	ArrPathGroup   = new Group(),
-	notPathGroup   = new Group(),
-	sinPathGroup   = new Group(),
-	elsIfDashGroup = new Group(),
-	auxDashGroup   = new Group();
+console.log("Start!!");
+var mouse_where = "canvas";
+var mouse_action = "";
+var navbar_whichVector = "BV";
+var auxline_whetherDisplay = false;
+var cross_memo = new Object();
+
+var circle_group      = new Group(),
+	vector_group      = new Group(),
+	auxline_gruop     = new Group(),
+	crossField_group  = new Group(),
+	crossVector_group = new Group();
+
+//styles
+var circle_style = {
+	radius: 25,
+	fillColor: '#0000FF',
+	hover_fillColor: '#00BFFF'
+};
+var becVector_style = {
+	type: "BV",
+	name: "normalVector",
+	strokeColor: '#1E90FF',
+	hover_strokeColor: '#00BFFF',
+	proto_strokeColor: '#1E90FF',
+	strokeJoin: 'round'
+};
+var sinVector_style = {
+	type: "LTV",
+	name: "normalVector",
+	strokeWidth: 5,
+	strokeColor: '#1E90FF',
+	hover_strokeColor: '#00BFFF',
+	proto_strokeColor: '#1E90FF'
+};
+var notVector_style = {
+	type: "NV",
+	name: "normalVector",
+	strokeColor: '#FF4500',
+	hover_strokeColor: "#FF7F50",
+	proto_strokeColor: '#FF4500',
+	strokeJoin: "round"
+}
+var eiVector_style = {
+	type: "EIV",
+	name: "normalVector",
+	strokeColor:'#00BFFF',
+	hover_strokeColor: '#1E90FF',
+	proto_strokeColor: '#00BFFF',
+	strokeWidth: 4,
+	dashArray: [10, 12]
+};
+var auxDashLine_style = {
+	type: "ADL",
+	strokeColor:'gray',
+	strokeWidth: 4,
+	dashArray: [10, 12],
+	display_opacity: 0.5
+};
+var crossField_style = {
+	opacity: 1,
+	closed: true
+}
+var crossVector_style = {
+	opacity: 0.5,
+	name: 'transitionalCrossingVector'
+}
 
 main();
 
+function main() {
+	layerSetting();
+	navbar_listener();
+}
 function onMouseDown(event) {
-	busyLicense = (!circleBusy && !formBusy);
-	if(busyLicense){
-		creatCircle(event.point, myRadius, circleColor);
-		var datacir = new Datacir(nowCircle, event.point, myRadius);
-		datacirList.push(datacir);
+	judgement("circle_create") && createCircle(event.point);
+}
+function createCircle(eventPoint) {
+	var circle_createData = {};
+
+	circleDataSetting();
+	drawCircle(circle_createData);
+	
+	function circleDataSetting() {
+		circle_createData = circle_style;
+		circle_createData.center = eventPoint;
+	}
+	function drawCircle(circle_createData) {
+		var nowCircle = new Path.Circle(circle_createData);
+		nowCircle.setCircleListener();
+
+		circle_group.addChild(nowCircle);
 	}
 }
+function layerSetting() {
+	vector_group.insertBelow(circle_group);
+	crossVector_group.insertBelow(vector_group);
+	crossField_group.insertBelow(crossVector_group);
+	auxline_gruop.insertBelow(crossField_group);
+}
+function judgement(behavior, defendant) {
+	var conclusion = new Boolean();
 
-function main(argument) {
-	GroupsInsertBelow();
-	navbarListener();
-	circleFormListenr();
-}
-function GroupsInsertBelow(){
-	ArrPathGroup.insertBelow(circleGroup);
-	notPathGroup.insertBelow(ArrPathGroup);
-	sinPathGroup.insertBelow(notPathGroup);
-	elsIfDashGroup.insertBelow(sinPathGroup);
-	auxDashGroup.insertBelow(elsIfDashGroup);	
-}
-function chooseVector(circleCenter, mousePoint){
-	if (whichVector === 'BV') {
-		setBecVector(circleCenter, mousePoint, vectorColor);
-		nowArrPath.removeOnDrag();	
-	}else if(whichVector === 'LTV'){
-		setLeadToVector(circleCenter, mousePoint, vectorColor);
-		nowSinPath.removeOnDrag();
-	}else if(whichVector === 'NV'){
-		setNotVector(circleCenter, mousePoint, notColor);
-		nowNotPath.removeOnDrag();
-	}else if(whichVector === 'EIV'){			
-		setElseIfVector(circleCenter, mousePoint, vectorColor);
-		nowEIDashLine.removeOnDrag();
+	if (behavior === "circle_create"){
+		conclusion = (mouse_where === 'canvas') ? true : false;
+	}else if(behavior === "form_call"){
+		conclusion = (mouse_where === 'circle') ? true : false;
+	}else if(behavior === "vector_create"){
+		conclusion = (mouse_where !== 'circle') ? true : false;
+	}else if(behavior === "vector_create_afterComplete"){
+		conclusion = (mouse_action === 'vector_create') ? true : false;
+	}else if(behavior === "vector_create_afterComplete_hover"){
+		var conditionA = mouse_action !== 'vector_create',
+			conditionB = mouse_action !== 'vector_cross';
+		conclusion = (conditionA && conditionB) ? true : false;
+	}else if(behavior === "vector_cross"){
+		var conditionA = mouse_where !== 'circle',
+			conditionB = mouse_action !== 'vector_create',
+			conditionC = mouse_action === 'vector_cross' ? defendant.name === 'cross_startedVector'
+														 : true;
+		conclusion = (conditionA && conditionB && conditionC) ? true : false;
+	}else if(behavior === "vector_cross_saveDraggingVector"){
+		conclusion = (mouse_action === 'vector_cross') ? true : false;
+	}else if(behavior === "vector_cross_complete"){
+		var conditionA = mouse_action === 'vector_cross',
+			conditionB = defendant.name === 'cross_startedVector';
+			conditionC = cross_memo.isCrossReady === true;
+		conclusion = (conditionA && conditionB && conditionC) ? true : false;
+	}else if(behavior === "vector_cross_ReadyOrFail"){
+		var conditionA = mouse_action === 'vector_cross',
+			conditionB = defendant.name === 'normalVector';
+		conclusion = (conditionA && conditionB) ? true : false;
+	}else if(behavior === "vector_cross_fail"){
+		var conditionA = mouse_action === 'vector_cross',
+			conditionB = defendant.name !== 'normalVector';
+		conclusion = (conditionA && conditionB) ? true : false;
+	}else if(behavior === "vector_cross_afterCross"){
+		conclusion = (mouse_action === 'vector_cross') ? true : false;
 	}else{
 		return undefined;
 	}
+	return conclusion;
 }
-//set self object
-function Datavec(startPoint, endPoint, type) { // the data about this vector
-	this.startPoint = startPoint;
-	this.endPoint   = endPoint;
-	this.vector     = endPoint - startPoint;
-	this.type       = type;
-	this.links      = {};
-	this.addLink = function(key, item) {
-		if (key === "circle") {
-			this.links.circle = item;
-		}else if (key === "path") {
-			this.links.arrPath = item;
-		}else if (key === "sin") {
-			this.links.sinPath = item;
-		}else if (key === "!path") {
-			this.links.notPath = item;
-		}else if (key === "dash") {
-			this.links.eiDashLine = item;
-		}else if (key === "aux") {
-			this.links.auxLine = item;
-		}else{
-			console.log("ADDLINK ERROR!!")
-			return null;
-		}
-	};
-}
-function Datacir(itself, center, radius) { //the data about this circle
-	this.self    = itself;
-	this.center  = center;
-	this.radius  = radius;
-	this.vectors = [];
-	//the form content
-	this.title   = "";
-	this.content = "";
-	this.brand   = "";
-}
-
-//set listeners
-function navbarListener(){
+function navbar_listener(){
 	$("#BV").click(function(event) {
-		console.log("BV CONNECTED!")
-		whichVector = 'BV';
+		navbar_whichVector = 'BV';
 	});
 	$("#LTV").click(function(event) {
-		console.log("LTV CONNECTED!")
-		whichVector = 'LTV';
+		navbar_whichVector = 'LTV';
 	});
 	$("#NV").click(function(event) {
-		console.log("NV CONNECTED!")
-		whichVector = 'NV';
+		navbar_whichVector = 'NV';
 	});
 	$("#EIV").click(function(event) {
-		console.log("EIV CONNECTED!")
-		whichVector = 'EIV';
+		navbar_whichVector = 'EIV';
 	});
 	$('#ALB').click(function(event){
-		console.log("ALB CONNECTED!")
-		auxlineDisplay = !auxlineDisplay;
-		auxDashGroup.children.forEach(function(auxDash) {
-			auxlineDisplay ? auxDash.opacity = 0.5 : auxDash.opacity = 0;				
-		})
-		// auxlineDisplay ? auxDashGroup.opacity = 0.5 : auxDashGroup.opacity = 0;
+		auxline_toggle();
 	})
+	function auxline_toggle() {
+		auxline_whetherDisplay = !auxline_whetherDisplay;
+		auxline_gruop.children.forEach(function(auxDash) {
+			auxDash.opacity = auxline_whetherDisplay ? auxDashLine_style.display_opacity : 0;				
+		})
+	}
 }
-function circleFormListenr() {
-	$('#circleForm').mouseenter(function() {
-		formBusy = true;
-	});
-	$('#DB').click(function(event){
-		console.log("DB CLICKED!");
-		formBusy = false;
-		busyLicense = (!circleBusy && !formBusy)
-		busyLicense && (nowCircle.remove());
-	});
-	$('#SB').click(function(event) {
-		formBusy = false;
-	});
-}
-Path.prototype.circleListener = function(){
-	this.onMouseEnter = function(event) {
-		this.fillColor = '#00BFFF';
-		busyLicense = (!circleBusy && !formBusy)
-		busyLicense && (nowCircle = this);
-		circleBusy = true;
+Path.prototype.setVectorListener = function() {
+	this.onMouseEnter = function(event){
+		mouseInVector();
+		judgement('vector_cross_ReadyOrFail', this) && crossStandBy();
+		judgement("vector_create_afterComplete_hover") && (this.strokeColor = this.hover_strokeColor);
 	}
-	this.onMouseLeave = function(event) {
-	    this.fillColor = circleColor;
-	    circleBusy = false;
+	this.onMouseLeave = function(event){
+		mouseOutVector();
+		judgement('vector_cross_ReadyOrFail', this) && crossDisable();
+		judgement("vector_create_afterComplete_hover") && (this.strokeColor = this.proto_strokeColor);
 	}
-	this.onMouseDrag = function(event){
-		busyLicense = (!circleBusy && !formBusy)
-		if (busyLicense) {
-			chooseVector(this.data.center, event.point);
-			//set auxiliary line
-			creatAuxDash(this.data.center, event.point, 'gray');
-			nowAuxDashLine.removeOnDrag();
-		}
-	}
-	this.onMouseDown = function(event) {
-		circleBusy = true;
-		busyLicense = (!circleBusy && !formBusy)
-		busyLicense && (nowCircle = this);
+	this.onMouseDown = function(event){
+		mouseInVector();
+		judgement('vector_cross', this) && beforeCrossing();
 	}
 	this.onMouseUp = function(event){
-		Boolean(nowAuxDashLine) && (auxlineDisplay ? nowAuxDashLine.opacity = 0.4 : nowAuxDashLine.opacity = 0);
-		
-		busyLicense = (!circleBusy && !formBusy)
-		var datavec = new Datavec(this.data.center, event.point, whichVector)
+		cross_memo.isCrossReady ? judgement('vector_cross_complete', this) && crossCompleted()
+								: judgement('vector_cross_fail', this) && crossFail();
+		judgement('vector_cross_afterCross', this) && afterCrossCompleted.call(this);
+	}
+	this.onMouseDrag = function(event){
+		judgement('vector_cross', this) && vectorCrossing.call(this, event);
+	}
+	this.onMouseMove = function(event){
+		mouseInVector();
+	}
+	this.onClick = function(event){
+		mouseInVector();
+	}
+	function mouseInVector() {
+		mouse_where = 'vector';
+	}
+	function mouseOutVector() {
+		mouse_where = 'canvas';
+	}
+	function beforeCrossing() {
+		crossField_style.fillColor = giveRandomColor();
 
-		var listenerCir = this;
-		var thisDatacir;
-		datacirList.forEach(function(datacir) {
-			(datacir.self == listenerCir) && (thisDatacir = datacir);
-		})
+		function giveRandomColor() {
+			var rgbTotalIsLow = true;
+			while(rgbTotalIsLow){
+				var r = Math.random(),
+					g = Math.random(),
+					b = Math.random();
+				rgbTotalIsLow = (r + g + b) > 2 ? false : true; 
+			}
+			var randomColor = new Color(r,g,b);
 
-		if (whichVector === 'BV' && busyLicense) {
-			datavec.addLink("circle", this);
-			datavec.addLink("path", nowArrPath);
-			thisDatacir.vectors.push(datavec);
-			datavecList.push(datavec);
-		}else if(whichVector === 'LTV' && busyLicense){
-			datavec.addLink("circle", this);
-			datavec.addLink("sin", nowSinPath);
-			thisDatacir.vectors.push(datavec);
-			datavecList.push(datavec);
-		}else if(whichVector === 'NV' && busyLicense){
-			datavec.addLink("circle", this);
-			datavec.addLink("!path", nowNotPath);
-			thisDatacir.vectors.push(datavec);
-			datavecList.push(datavec);
-		}else if(whichVector === 'EIV' && busyLicense){
-			datavec.addLink("circle", this);
-			datavec.addLink("dash", nowEIDashLine);
-			thisDatacir.vectors.push(datavec);
-			datavecList.push(datavec);
-		}else{
-			return undefined;
+			return randomColor;
 		}
-		console.log(datavec.links);
-		console.log(thisDatacir.vectors);
-		console.log(datavecList);
-		console.log(datacirList);
+	}
+	function vectorCrossing(event) {
+		vectorCrossingInstruction.call(this);
+
+		var startPosition = giveVectorStartPosition.call(this),
+			endPosition   = giveVectorEndPosition.call(this);
+		var startPoint = new Point(startPosition),
+			endPoint   = new Point(endPosition),
+			mousePoint = event.point;
+
+		createVector(startPoint, mousePoint);
+		createCrossField(startPoint, endPoint, mousePoint);
+
+		function vectorCrossingInstruction() {
+			mouse_action = 'vector_cross';
+			this.name = 'cross_startedVector';
+			cross_memo.whoIsUsingCross = this.id;
+		}
+		function giveVectorStartPosition() {
+			var positionX = this.segments[0].point.x,
+				positionY = this.segments[0].point.y;
+
+			return [positionX, positionY];
+		}
+		function giveVectorEndPosition() {
+			var lastIndex = this.segments.length - 1; 
+			var positionX = this.segments[lastIndex].point.x,
+				positionY = this.segments[lastIndex].point.y;
+
+			return [positionX, positionY];
+		}
+	}
+	function crossStandBy() {
+		cross_memo.isCrossReady = true;
+	}
+	function crossDisable() {
+		cross_memo.isCrossReady = false;
+	}
+	function crossCompleted() {
+		crossVector_group.children['transitionalCrossingVector'].remove();
+	}
+	function crossFail() {
+		var lastGroupChildIndex = giveLastIndex();
+
+		crossVector_group.children['transitionalCrossingVector'].remove();
+		crossField_group.children[lastGroupChildIndex].remove();
+
+		function giveLastIndex() {
+			var lastIndex = crossField_group.children.length - 1;
+			return lastIndex;
+		}
+
+	}
+	function afterCrossCompleted() {
+		vectorClear.call(this);
+		vectorCrossingClosing();
+
+		function vectorClear(){
+			this.strokeColor = this.proto_strokeColor;
+			this.name = 'normalVector';
+		} 
+		function vectorCrossingClosing() {
+			mouse_action = "";
+			cross_memo.isCrossReady = false;
+			console.log("Closing!!");
+		}
+	}
+};
+Path.prototype.setCircleListener = function() {
+	this.onMouseEnter = function(event) {
+		this.fillColor = circle_style.hover_fillColor;
+		mouseInCircle();
+	}
+	this.onMouseLeave = function(event) {
+		this.fillColor = circle_style.fillColor;
+		mouseOutCircle();
+	}
+	this.onMouseDown = function(event) {
+		mouseInCircle();
+	}
+	this.onMouseUp = function(event) {
+		judgement('vector_create_afterComplete') && afterVectorCompleted();
+	}
+	this.onMouseDrag = function(event) {
+		judgement("vector_create", this) && vectorCreating.call(this, event);
+	}
+	this.onMouseMove = function(event) {
+		mouseInCircle();
+	}
+	this.onClick = function(event) {
+		mouseInCircle();
 	}
 	this.onDoubleClick = function(event) {
-		circleBusy = true;
-		formBusy = true;
-		busyLicense = (!circleBusy && !formBusy)
-		busyLicense && (nowCircle = this);
+		mouseInCircle();
+		judgement('form_call') && callForm(this);
+	}
+	function mouseInCircle(){
+		mouse_where = "circle";
+	}
+	function mouseOutCircle() {
+		mouse_where = "canvas";
+	}
+	function vectorCreating(event) {
+		vectorCreatingInstruction();
+
+		var startPoint = new Point(this.position.x, this.position.y),
+			endPoint   = event.point;
+		createVector(startPoint, endPoint);
+		createAuxDashLine(startPoint, endPoint);
+
+		function vectorCreatingInstruction() {
+			mouse_action = "vector_create";
+		}
+	}
+	function afterVectorCompleted() {
+		auxline_disppear();
+		vectorCreatingClosing();
+
+		function auxline_disppear() {
+			var lastAuxLineIndex = auxline_gruop.children.length - 1;
+			var lastAuxLine = auxline_gruop.children[lastAuxLineIndex];
+
+			Boolean(lastAuxLine) && (lastAuxLine.opacity = auxline_whetherDisplay ? auxDashLine_style.display_opacity : 0);
+		}
+		function vectorCreatingClosing() {
+			 mouse_action = "";
+		}
+	}
+	function callForm(thisCircle) {
 		$.fancybox.open({
 		    src  : '#circleForm',
 		    type : 'inline',
@@ -228,153 +352,270 @@ Path.prototype.circleListener = function(){
       			smallBtn: false
     		}
   		});
+
+  		circleFormListenr();
+
+		function circleFormListenr() {
+			formOpen();
+			argumentDisplay();
+
+			function formOpen() {		
+				$('#circleForm').mousemove(function(event){
+					mouse_where = 'form';	
+				});
+				$('#DB').click(function(event){
+					thisCircle.remove();
+					formClose();
+				});
+				$('#SB').click(function(event) {
+					savingData();
+					formClose();
+				});
+
+				function formClose() {
+					$('#DB').off('click');
+					$('#SB').off('click');
+					mouse_where = 'canvas';
+				}
+				function savingData(){
+					thisCircle.data 			= new Object();
+					thisCircle.data.isDenying   = $('label#denyBox.active')[0] ? true : false;
+					thisCircle.data.title       = $('input.cir_title').val();
+					thisCircle.data.description = $('textarea.cir_desc').val();
+				}
+			}
+			function argumentDisplay() {
+				thisCircle.data.isDenying ? $('label#denyBox').addClass("active")
+										  : $('label#denyBox').removeClass("active");
+				$('input.cir_title').val(thisCircle.data.title || "");
+				$('textarea.cir_desc').val(thisCircle.data.description || "");
+			}
+		}
 	}
-}
+};
 Path.prototype.auxDashLineListener = function() {
 	this.onMouseEnter = function(event) {
 	    this.opacity = 1;
 	}
 	this.onMouseLeave = function(event) {
-		auxlineDisplay ? this.opacity = 0.4 : this.opacity = 0;
+		this.opacity = auxline_whetherDisplay ? auxDashLine_style.display_opacity : 0;
 	}
 };
 
-//The part of 'Not Vector'
-function setNotVector(startPoint, endPoint, color) {
-	//magic numbers
-	var shortenRate = 0.1;
+function createCrossField(startPoint, endPoint, mousePoint) {
+	var cf_createData = {};
 
-	var middlePoint = (startPoint + endPoint) / 2;
-	var myVector = endPoint - startPoint;
-	var myShortVec = myVector * shortenRate;
-	var toRightAngleVector = myShortVec.clone();
-	var toLeftAngleVector = myShortVec.clone();
-	toRightAngleVector.angle += 45;
-	toLeftAngleVector.angle -= 45;
+	cfDataSetting();
+	drawCrossField(cf_createData);
 
-	var rightTopPoint    = middlePoint + toRightAngleVector,
-		leftBottomPoint  = middlePoint - toRightAngleVector,
-		leftTopPoint     = middlePoint + toLeftAngleVector,
-		rightBottomPoint = middlePoint - toLeftAngleVector;
-	var segmentArray = [rightTopPoint, 
-						leftBottomPoint,
-						middlePoint,
-						leftTopPoint,
-						rightBottomPoint,
-						middlePoint,
-						startPoint,
-						endPoint]
-	nowNotPath = new Path(segmentArray);
-	initPath(nowNotPath, color, myVector.length, notPathGroup);
-}
-//The part of auxiliary line
-function creatAuxDash(center, endPoint, color) {
-	var horizonVector = endPoint - center;
-	nowAuxDashLine = new Path();
-	initDashLine(nowAuxDashLine, 'gray', auxDashGroup);
-	drawStraightLine(horizonVector, center, nowAuxDashLine);
-	nowAuxDashLine.auxDashLineListener();
-}
-function drawStraightLine(vector, point, line) {
-	var unitVector = vector / vector.length;
-	for(var i = 0 ; i < 1500 ; i++){
-		var dashX = point.x + unitVector.x * i;
-		var dashY = point.y + unitVector.y * i;
-		var dashPoint = new Point(dashX, dashY);
-		line.add(dashPoint);		
+	function cfDataSetting() {
+		cf_createData = crossField_style;
+		cf_createData.segments = giveCfSegments();
+
+		function giveCfSegments() {
+			var crossFiledPoint = endPoint + mousePoint - startPoint;
+			var segments = [startPoint,
+							endPoint,
+							crossFiledPoint,
+							mousePoint];
+			return segments;
+		}
+	}
+	function drawCrossField(cf_createData) {
+		var nowCrossField = new Path(cf_createData);
+		nowCrossField.removeOnDrag();
+
+		crossField_group.addChild(nowCrossField);
 	}
 }
-//The part of 'ElseIf Vector'
-function initDashLine(dashLine, color, group) {
-	dashLine.strokeWidth = 4;
-	dashLine.strokeColor = color;
-	dashLine.dashArray = [10, 12];
-	group.addChild(dashLine);
-}
-function setElseIfVector(startPoint, endPoint, color) {
-	nowEIDashLine = new Path(startPoint, endPoint);
-	initDashLine(nowEIDashLine, '#00BFFF', elsIfDashGroup);
-}
-//The part of 'Circle'
-function creatCircle(center, radius, color){
-	nowCircle = new Path.Circle(center, radius);
-	nowCircle.fillColor = color;
-	nowCircle.data.center = center;
-	nowCircle.circleListener();
-
-	circleGroup.addChild(nowCircle);
-}
-//The part of 'Because Vector'
-function initPath(path, color, length, group) {
-	path.strokeColor = color;
-	path.strokeJoin = 'round';
-	//set the width of arrow path
-	var myPathWidth = length / 40;
-	var maxPathWidth = 10;
-	var minPathWidth = 4;
-	path.strokeWidth = myPathWidth;
-	if(myPathWidth > maxPathWidth) {
-		path.strokeWidth = maxPathWidth;
-	}else if(myPathWidth < minPathWidth){
-		path.strokeWidth = minPathWidth;
-	}	
-	group.addChild(path);
-}
-function setBecVector(startPoint, endPoint, color){
-	//magic number
-	var shortenParam = 0.1;
-	//create arrow line
-	var myRevVec = -(endPoint - startPoint);//reverse vector
-	var myRevShortVec = myRevVec * shortenParam;
-	//restrict the length of arrow path
-	var maxArrPath = 30;
-	if (myRevShortVec > maxArrPath) {
-		myRevShortVec /= myRevShortVec.length;
-		myRevShortVec *= maxArrPath;
+function createVector(startPoint, endPoint){
+	if (navbar_whichVector === 'BV') {
+		createBecauseVector();
+	}else if(navbar_whichVector === 'LTV'){
+		createLeadToVector();
+	}else if(navbar_whichVector === 'NV'){
+		createNotVector();
+	}else if(navbar_whichVector === 'EIV'){
+		createElseIfVector();
+	}else{
+		return undefined;
 	}
-	//create right arrow line
-	var rightVec = myRevShortVec.clone();
-	var leftVec = myRevShortVec.clone();
-	//rotate the angle
-	rightVec.angle += 30;
-	leftVec.angle -= 30;
 
-	var rightEnd = endPoint + rightVec,
-		leftEnd  = endPoint + leftVec;
-	var segments = [startPoint,
-					endPoint,
-					rightEnd,
-					endPoint,
-					leftEnd,
-					endPoint,
-					startPoint];
-	//create arrow
-	nowArrPath = new Path(segments);
-	initPath(nowArrPath, color, myRevVec.length, ArrPathGroup);
-}
-
-//The Part of 'LeadTo Vector'
-function setLeadToVector(startPoint, endPoint, color){
-	var sinPathVector = endPoint - startPoint;
-	nowSinPath = new Path();
-	//magic numbers
-	var height = 10,
-		wavelength = 18,
-		timeOfWave = sinPathVector.length/18,
-		radian_degree_rate = Math.PI / 360,
-		unitOfSinX = 50,
-		telescopeSinX = 20;
-	for (var sinX = 0; sinX < 360 * timeOfWave; sinX += unitOfSinX) {
-		var radian = sinX * radian_degree_rate;//trun degree to radian
-		var sinY = Math.sin(radian) * height;
-		var sinPoint = new Point(sinX / telescopeSinX, sinY);
-		sinPoint.angle += sinPathVector.angle;
-		sinPoint += startPoint;
-		nowSinPath.add(sinPoint);
+	function restrictStrokeWidth() {
+		var selfVector = endPoint - startPoint;
+		var selfPathWidth = selfVector.length / 40,
+			maxPathWidth = 10,
+			minPathWidth = 4;
+		if(selfPathWidth > maxPathWidth) {
+			return maxPathWidth;
+		}else if(selfPathWidth < minPathWidth){
+			return minPathWidth;
+		}else{
+			return selfPathWidth;
+		}
 	}
-	nowSinPath.smooth();
-	nowSinPath.strokeColor = color;
-	nowSinPath.strokeWidth = 3;
+	function drawVector(vector_createData) {
+		var nowVector = new Path(vector_createData);
+		nowVector.removeOnDrag();
+		nowVector.setVectorListener();
 
-	sinPathGroup.addChild(nowSinPath);
+		vector_group.addChild(nowVector);
+
+		judgement('vector_cross_saveDraggingVector') && crossCondition();
+
+		function crossCondition() {
+			nowVector.set(crossVector_style);
+
+			crossVector_group.addChild(nowVector);
+		}
+	}
+	function createBecauseVector() {
+		var bv_createData = {};
+
+		bvDataSetting();
+		drawVector(bv_createData);
+
+		function bvDataSetting() {
+			bv_createData = becVector_style;
+			bv_createData.strokeWidth = restrictStrokeWidth();
+			bv_createData.segments    = giveBecSegments();
+
+			function giveBecSegments() {
+				var becVector = endPoint - startPoint;
+				var toRightArrVector = ((-becVector) * 0.1).clone(),
+					toLeftArrVector  = ((-becVector) * 0.1).clone();
+				toRightArrVector.angle += 30;		
+				toLeftArrVector.angle -= 30;
+
+				var arrRightPoint = endPoint + toRightArrVector,
+					arrLeftPoint  = endPoint + toLeftArrVector;
+				var segments = [startPoint,
+								endPoint,
+								arrRightPoint,
+								endPoint,
+								arrLeftPoint,
+								endPoint];
+				return segments;
+			}
+		}
+	}
+	function createLeadToVector() {
+		var ltv_createData = {};
+
+		ltvDataSetting();
+		drawVector(ltv_createData);
+
+		function ltvDataSetting() {
+			ltv_createData = sinVector_style;
+			ltv_createData.segments = giveSinPathSegments();
+
+			function giveSinPathSegments() {
+				var sinPathVector = endPoint - startPoint;
+					height = 10,
+					wavelength = 18,
+					timeOfWave = sinPathVector.length / wavelength,
+					radian_degree_rate = Math.PI / 360,
+					unitOfSinX = 50,
+					telescopeSinX = 20;
+
+				return sinPathSegments();
+
+				function sinPathSegments() {
+					var segmentsArray = new Array();
+					for (var sinX = 0; sinX < 360 * timeOfWave; sinX += unitOfSinX) {
+						var radian = sinX * radian_degree_rate;//trun degree to radian
+						var sinY = Math.sin(radian) * height;
+						var sinPoint = new Point(sinX / telescopeSinX, sinY);
+						sinPoint.angle += sinPathVector.angle;
+						sinPoint += startPoint;
+						segmentsArray.push(sinPoint);
+					}
+					return segmentsArray;
+				}
+			}
+		}
+	}
+	function createNotVector() {
+		var nv_createData = {};
+
+		nvDataSetting();
+		drawVector(nv_createData);
+
+		function nvDataSetting() {
+			nv_createData = notVector_style;
+			nv_createData.strokeWidth = restrictStrokeWidth(startPoint, endPoint);
+			nv_createData.segments    = giveNotSegments();
+
+			function giveNotSegments() {
+				var notVector = endPoint - startPoint,
+					toRightAngleVector = notVector * 0.1,
+					toLeftAngleVector  = notVector * 0.1;
+				toRightAngleVector.angle += 45;
+				toLeftAngleVector.angle  -= 45;
+
+				var middlePoint 	 = (startPoint + endPoint) / 2,
+					rightTopPoint    = middlePoint + toRightAngleVector,
+					leftBottomPoint  = middlePoint - toRightAngleVector,
+					leftTopPoint     = middlePoint + toLeftAngleVector,
+					rightBottomPoint = middlePoint - toLeftAngleVector;
+				var segments = [startPoint,
+								middlePoint,
+								rightTopPoint, 
+								leftBottomPoint,
+								middlePoint,
+								leftTopPoint,
+								rightBottomPoint,
+								middlePoint,
+								endPoint];
+				return segments;
+			}
+		}
+	}
+	function createElseIfVector() {
+		var eiv_createData = {};
+
+		eiDataSetting();
+		drawVector(eiv_createData);
+
+		function eiDataSetting() {
+			eiv_createData = eiVector_style;
+			eiv_createData.segments = giveEISegments();
+
+			function giveEISegments() {
+				var segments = [startPoint, endPoint];
+				return segments;
+			}
+		}
+	}
+}
+function createAuxDashLine(startPoint, endPoint) {
+	var auxDash_createData = {};
+
+	adlDataSetting();
+	drawAuxDashLine(auxDash_createData);
+
+	function adlDataSetting() {
+		auxDash_createData = auxDashLine_style;
+		auxDash_createData.segments = giveAdlSegments();
+
+		function giveAdlSegments() {
+			var segments = new Array();
+			var auxVector = endPoint - startPoint,
+				unitVector = auxVector / auxVector.length;
+			for(var i = 0 ; i < 1500 ; i++){
+				var dashX = startPoint.x + unitVector.x * i;
+				var dashY = startPoint.y + unitVector.y * i;
+				var dashPoint = new Point(dashX, dashY);
+				segments.push(dashPoint);		
+			}
+			return segments;
+		}
+	}
+	function drawAuxDashLine(auxDash_createData) {
+		var nowAuxDashLine = new Path(auxDash_createData);
+		nowAuxDashLine.removeOnDrag();
+		nowAuxDashLine.auxDashLineListener();
+
+		auxline_gruop.addChild(nowAuxDashLine);
+	}
 }
