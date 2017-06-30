@@ -59,8 +59,10 @@ var auxDashLine_style = {
 	display_opacity: 0.5
 };
 var crossField_style = {
-	opacity: 1,
-	closed: true
+	opacity: 0.6,
+	closed: true,
+	hover_opacity: 0.8,
+	proto_opacity: 0.6
 }
 var crossVector_style = {
 	opacity: 0.5,
@@ -103,7 +105,9 @@ function judgement(behavior, defendant) {
 	var conclusion = new Boolean();
 
 	if (behavior === "circle_create"){
-		conclusion = (mouse_where === 'canvas') ? true : false;
+		var conditionA = mouse_where === 'canvas',
+			conditionB = mouse_where === 'crossfield';
+		conclusion = (conditionA || conditionB) ? true : false;
 	}else if(behavior === "form_call"){
 		conclusion = (mouse_where === 'circle') ? true : false;
 	}else if(behavior === "vector_create"){
@@ -137,6 +141,8 @@ function judgement(behavior, defendant) {
 		conclusion = (conditionA && conditionB) ? true : false;
 	}else if(behavior === "vector_cross_afterCross"){
 		conclusion = (mouse_action === 'vector_cross') ? true : false;
+	}else if(behavior === "crossfield_hover"){
+		conclusion = (mouse_action !== 'vector_cross') ? true : false;
 	}else{
 		return undefined;
 	}
@@ -165,15 +171,45 @@ function navbar_listener(){
 		})
 	}
 }
+Path.prototype.setCrossFieldListener = function() {
+	this.onMouseEnter = function(event) {
+		mouseInCrossField();
+		judgement('crossfield_hover') && (this.opacity = crossField_style.hover_opacity);
+	}
+	this.onMouseLeave = function(event) {
+		mouseOutCrossField();
+		judgement('crossfield_hover') && (this.opacity = crossField_style.proto_opacity);
+	}
+	this.onMouseDown = function(event) {
+		mouseInCrossField();
+	}
+	this.onMouseUp = function(event) {
+	}
+	this.onMouseDrag = function(event) {
+	}
+	this.onMouseMove = function(event) {
+		mouseInCrossField();
+	}
+	this.onClick = function(event) {
+		mouseInCrossField();
+	}
+	function mouseInCrossField() {
+		mouse_where = 'crossfield';
+	}
+	function mouseOutCrossField() {
+		mouse_where = '';
+	}
+};
+
 Path.prototype.setVectorListener = function() {
 	this.onMouseEnter = function(event){
 		mouseInVector();
-		judgement('vector_cross_ReadyOrFail', this) && crossStandBy();
+		judgement('vector_cross_ReadyOrFail', this) && crossStandBy.call(this);
 		judgement("vector_create_afterComplete_hover") && (this.strokeColor = this.hover_strokeColor);
 	}
 	this.onMouseLeave = function(event){
 		mouseOutVector();
-		judgement('vector_cross_ReadyOrFail', this) && crossDisable();
+		judgement('vector_cross_ReadyOrFail', this) && crossDisable.call(this);
 		judgement("vector_create_afterComplete_hover") && (this.strokeColor = this.proto_strokeColor);
 	}
 	this.onMouseDown = function(event){
@@ -219,39 +255,55 @@ Path.prototype.setVectorListener = function() {
 	function vectorCrossing(event) {
 		vectorCrossingInstruction.call(this);
 
-		var startPosition = giveVectorStartPosition.call(this),
-			endPosition   = giveVectorEndPosition.call(this);
+		var startPosition = giveVectorStartPosition(this),
+			endPosition   = giveVectorEndPosition(this);
 		var startPoint = new Point(startPosition),
 			endPoint   = new Point(endPosition),
 			mousePoint = event.point;
 
 		createVector(startPoint, mousePoint);
 		createCrossField(startPoint, endPoint, mousePoint);
+		isCrossReady && createGhostCrossVector();
 
 		function vectorCrossingInstruction() {
 			mouse_action = 'vector_cross';
 			this.name = 'cross_startedVector';
 			cross_memo.whoIsUsingCross = this.id;
 		}
-		function giveVectorStartPosition() {
-			var positionX = this.segments[0].point.x,
-				positionY = this.segments[0].point.y;
+		function giveVectorStartPosition(vector) {
+			var positionX = vector.segments[0].point.x,
+				positionY = vector.segments[0].point.y;
 
 			return [positionX, positionY];
 		}
-		function giveVectorEndPosition() {
-			var lastIndex = this.segments.length - 1; 
-			var positionX = this.segments[lastIndex].point.x,
-				positionY = this.segments[lastIndex].point.y;
+		function giveVectorEndPosition(vector) {
+			var lastIndex = vector.segments.length - 1; 
+			var positionX = vector.segments[lastIndex].point.x,
+				positionY = vector.segments[lastIndex].point.y;
 
 			return [positionX, positionY];
+		}
+		function createGhostCrossVector() {
+			// var targetStartPoint   = cross_memo.targetVecotor.segments[0],
+			// 	protoVector 	   = endPoint - startPoint,
+			// 	ghostStartPosition = giveVectorStartPosition(cross_memo.targetVecotor);
+			// var ghostStartPoint = new Point(ghostStartPosition),
+			// 	ghostEndPoint   = targetStartPoint + protoVector;
+
+			// createVector(ghostStartPoint, ghostEndPoint);
+			changeName();
+			function changeName() {
+
+			}
 		}
 	}
 	function crossStandBy() {
 		cross_memo.isCrossReady = true;
+		cross_memo.targetVecotor = this;
 	}
 	function crossDisable() {
 		cross_memo.isCrossReady = false;
+		cross_memo.targetVecotor = new Object();
 	}
 	function crossCompleted() {
 		crossVector_group.children['transitionalCrossingVector'].remove();
@@ -413,17 +465,59 @@ function createCrossField(startPoint, endPoint, mousePoint) {
 		cf_createData.segments = giveCfSegments();
 
 		function giveCfSegments() {
-			var crossFiledPoint = endPoint + mousePoint - startPoint;
-			var segments = [startPoint,
-							endPoint,
-							crossFiledPoint,
-							mousePoint];
-			return segments;
+			var cfSegments = cross_memo.isCrossReady ? readyCfSegments() : failedCfSegments();
+
+			return cfSegments;
+
+			//       F/￣￣￣￣/K
+			//       /       /
+			//      /       /
+			//     /       /
+			//   G -------> C
+			function readyCfSegments() {
+				var targetStartPosition = Boolean(cross_memo.targetVecotor) && giveTargetStartPosition(cross_memo.targetVecotor),
+					targetEndPosition   = Boolean(cross_memo.targetVecotor) && giveTargetEndPosition(cross_memo.targetVecotor);
+				var targetStartPoint = new Point(targetStartPosition),
+					targetEndPoint   = new Point(targetEndPosition);
+				var baseStartPoint    = targetStartPoint,
+					translateEndPoint = baseStartPoint + endPoint - startPoint,
+					crossFiledPoint   = endPoint + targetEndPoint - startPoint,
+					baseEndPoint      = targetEndPoint;	
+				var segments = [baseStartPoint,//G
+								translateEndPoint,//F
+								crossFiledPoint,//K
+								baseEndPoint];//C
+
+				return segments;
+
+				function giveTargetStartPosition(target) {
+					var positionX = target.segments[0].point.x,
+						positionY = target.segments[0].point.y;
+
+					return [positionX, positionY];
+				}
+				function giveTargetEndPosition(target) {
+					var lastIndex = target.segments.length - 1; 
+					var positionX = target.segments[lastIndex].point.x,
+						positionY = target.segments[lastIndex].point.y;
+
+					return [positionX, positionY];
+				}
+			}
+			function failedCfSegments() {
+				var crossFiledPoint = endPoint + mousePoint - startPoint;
+				var segments = [startPoint,//G
+								endPoint,//F
+								crossFiledPoint,//K
+								mousePoint];//C
+				return segments;
+			}
 		}
 	}
 	function drawCrossField(cf_createData) {
 		var nowCrossField = new Path(cf_createData);
 		nowCrossField.removeOnDrag();
+		nowCrossField.setCrossFieldListener();
 
 		crossField_group.addChild(nowCrossField);
 	}
@@ -463,8 +557,8 @@ function createVector(startPoint, endPoint){
 
 		judgement('vector_cross_saveDraggingVector') && crossCondition();
 
-		function crossCondition() {
-			nowVector.set(crossVector_style);
+		function crossCondition() {			
+			nowVector.set(crossField_style);
 
 			crossVector_group.addChild(nowVector);
 		}
@@ -600,7 +694,7 @@ function createAuxDashLine(startPoint, endPoint) {
 
 		function giveAdlSegments() {
 			var segments = new Array();
-			var auxVector = endPoint - startPoint,
+			var auxVector  = endPoint - startPoint,
 				unitVector = auxVector / auxVector.length;
 			for(var i = 0 ; i < 1500 ; i++){
 				var dashX = startPoint.x + unitVector.x * i;
